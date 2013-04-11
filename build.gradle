@@ -1,0 +1,45 @@
+apply plugin: 'java'
+//apply plugin: 'scala'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+apply plugin: 'maven'
+
+configure(install.repositories.mavenInstaller) {
+    pom.project {
+        version '1.0-SNAPSHOT'
+        artifactId "engine"
+        groupId "com.rodhilton.metaheuristics"
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/java']
+        }
+        groovy {
+            srcDirs = ['src/groovy']
+        }
+    }
+
+    test {
+        java {
+            srcDirs = ['test/java']
+        }
+        groovy {
+            srcDirs = ['test/groovy']
+        }
+    }
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.0.5'
+
+    compile 'com.google.guava:guava:14.0'
+
+    testCompile 'junit:junit:4.10'
+}
