@@ -5,8 +5,8 @@ import com.rodhilton.metaheuristics.Rectangle
 class RectUtils {
     static String printRectangles(Rectangle... rects) {
         StringBuilder sb = new StringBuilder();
-        int width=200
-        int height=40
+        int width=60
+        int height=20
         for(int i=height;i>0;i--) {
             sb.printf("%3.2f | ", [i/(double)height])
             for(int j=0;j<width;j++){

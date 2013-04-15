@@ -35,10 +35,10 @@ public class ScoredSet<T> {
         if (!map.containsKey(score) ) {
             map.put(score, new ArrayList<T>());
             scores.add(score);
-            size++;
         }
         List<T> list = map.get(score);
         list.add(t);
+        size++;
     }
 
     public int size() {
@@ -52,9 +52,24 @@ public class ScoredSet<T> {
     }
 
     public T getBest() {
-        BigDecimal bestScore = scores.first();
-        List<T> list = map.get(bestScore);
-        return list.get(0);
+        return getTop(1).get(0);
+    }
+
+    public List<T> getTop(int count) {
+        if(count>size) throw new ArrayIndexOutOfBoundsException("Requested "+count+", only "+size+" available");
+
+        ArrayList<T> result = new ArrayList<T>();
+        Iterator<BigDecimal> scoreIterator = scores.iterator();
+
+        while(result.size()<count) {
+            int howManyLeft = count - result.size();
+            BigDecimal score = scoreIterator.next();
+
+            List<T> listforScore = map.get(score);
+            List<T> subList = listforScore.subList(0, Math.min(listforScore.size(), howManyLeft));
+            result.addAll(subList);
+        }
+        return result;
     }
 
     public List<T> sortedElements() {

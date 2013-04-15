@@ -2,6 +2,7 @@ package com.rodhilton.metaheuristics.simulator;
 
 import com.google.common.base.Supplier;
 import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
+import com.rodhilton.metaheuristics.collections.InefficientScoredSet;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ public class Simulator {
 
     @SuppressWarnings("unchecked")
     public void startSimulation() {
-        int generationSize = 1000;
+        int generationSize = 100;
 
         List<MetaheuristicAlgorithm> generation = new ArrayList();
         for (int i = 0; i < generationSize; i++) {
@@ -46,7 +47,6 @@ public class Simulator {
 
             MetaheuristicAlgorithm best = sortedGeneration.getBest();
             generation = best.combine(sortedGeneration);
-
         }
     }
 

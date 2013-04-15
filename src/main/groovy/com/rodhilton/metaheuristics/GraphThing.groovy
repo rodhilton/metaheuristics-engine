@@ -47,6 +47,12 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
         }
     }
 
+    protected GraphThing(int size, Random random, List<Rectangle> rects) {
+        this.size = size
+        this.random = random
+        this.rects = rects
+    }
+
 
     @Override
     Number fitness() {
@@ -69,7 +75,8 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
                 }
             }
         }
-        println(visiblePairs.collect{ pair -> "(${pair[0]+1}, ${pair[1]+1})"}.join(", "));
+        //println("fitness of ${count}!!")
+        //println(visiblePairs.collect{ pair -> "(${pair[0]+1}, ${pair[1]+1})"}.join(", "));
         return count
     }
 
@@ -92,12 +99,72 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
 
     @Override
     List<GraphThing> combine(ScoredSet<GraphThing> scoredGeneration) {
-        return [this]
+        def parents = scoredGeneration.getTop(2);
+
+        int pivot=random.nextInt(size-1)
+
+        def parent1Bottom = parents[0].rects[0..pivot]
+        def parent2Bottom = parents[1].rects[0..pivot]
+        def parent1Top=parents[0].rects[pivot+1..-1]
+        def parent2Top=parents[1].rects[pivot+1..-1]
+
+        GraphThing child1 = new GraphThing(size, random, parent1Bottom + parent2Top)
+        GraphThing child2 = new GraphThing(size, random, parent2Bottom + parent1Top)
+
+        int mutations=scoredGeneration.size()-1
+
+        List<GraphThing> child1Offspring = []
+        List<GraphThing> child2Offspring = []
+
+        for(int i=0;i<mutations;i++) {
+            child1Offspring << child1.mutate()
+            child2Offspring << child2.mutate()
+        }
+
+
+        def things = child1Offspring + child2Offspring + scoredGeneration.getBest()
+        return things
+    }
+
+    private GraphThing mutate() {
+        int whichRect = random.nextInt(size);
+        int whichDimension = random.nextInt(4);
+        List<Rectangle> copyRects = new ArrayList<Rectangle>()
+        for(Rectangle rectToCopy: rects) {
+            Rectangle newRect = new Rectangle(
+                    north: rectToCopy.north,
+                    east: rectToCopy.east,
+                    south: rectToCopy.south,
+                    west: rectToCopy.west
+            )
+            copyRects.add(newRect);
+        }
+        Rectangle mutating = copyRects[whichRect]
+
+        switch(whichDimension) {
+            case 0: //north
+                mutating.setNorth(mutating.south+(random.nextDouble()*(1.0-mutating.south)))
+                break;
+            case 1: //east
+                mutating.setEast(mutating.west+(random.nextDouble()*(1.0-mutating.west)))
+                break;
+            case 2: //south
+                mutating.setSouth(random.nextDouble()*mutating.north)
+                break;
+            case 3: //west
+                mutating.setWest(random.nextDouble()*mutating.east)
+                break;
+        }
+
+        copyRects.set(whichRect, mutating)
+
+        return new GraphThing(size, random, copyRects)
     }
 
     @Override
     String toString() {
-        RectUtils.printRectangles((Rectangle[])rects.toArray())
+        "F${fitness()}"
+        //RectUtils.printRectangles((Rectangle[])rects.toArray())
 //        StringBuilder sb = new StringBuilder()
 //        sb.append("{\n")
 //        for(Rectangle rect: rects) {

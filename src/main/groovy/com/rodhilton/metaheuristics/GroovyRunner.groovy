@@ -7,8 +7,9 @@ import com.rodhilton.metaheuristics.simulator.SimulatorCallback
 
 class GroovyRunner {
     public static void main(String[] args) {
-        final int size=9;
+        final int size=15;
         Random random = new Random();
+        random.setSeed(12345L);
         final Simulator simulator = new Simulator(new Supplier<GraphThing>() {
 
             @Override
@@ -21,7 +22,7 @@ class GroovyRunner {
             @Override
             void call(ScoredSet<GraphThing> everything) {
                 GraphThing best = everything.getBest()
-                println("${best}  -->  ${best.fitness()}")
+                println("${best}  -->  ${best.fitness()}/${(size * (size - 1))/2}")
             }
         }
 
