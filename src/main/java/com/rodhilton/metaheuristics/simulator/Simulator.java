@@ -1,6 +1,7 @@
 package com.rodhilton.metaheuristics.simulator;
 
 import com.google.common.base.Supplier;
+import com.rodhilton.metaheuristics.Counter;
 import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
 import com.rodhilton.metaheuristics.collections.InefficientScoredSet;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
@@ -36,18 +37,25 @@ public class Simulator {
         }
 
         while (!stopRequested) {
-            ScoredSet<MetaheuristicAlgorithm> sortedGeneration = new ScoredSet();
-            for (MetaheuristicAlgorithm member : generation) {
-                sortedGeneration.add(member.fitness(), member);
-            }
+            ScoredSet<MetaheuristicAlgorithm> scoredGeneration = scoreGeneration(generation);
 
             for (SimulatorCallback callback : callbacks) {
-                callback.call(sortedGeneration);
+                callback.call(scoredGeneration);
             }
 
-            MetaheuristicAlgorithm best = sortedGeneration.getBest();
-            generation = best.combine(sortedGeneration);
+            MetaheuristicAlgorithm best = scoredGeneration.getBest();
+            generation = best.combine(scoredGeneration);
+            Counter.generation++;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ScoredSet<MetaheuristicAlgorithm> scoreGeneration(List<MetaheuristicAlgorithm> generation) {
+        ScoredSet<MetaheuristicAlgorithm> scored = new ScoredSet();
+        for (MetaheuristicAlgorithm member : generation) {
+            scored.add(member.fitness(), member);
+        }
+        return scored;
     }
 
     public void stopSimulation() {

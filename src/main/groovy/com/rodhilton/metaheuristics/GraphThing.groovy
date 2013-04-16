@@ -4,6 +4,10 @@ import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm
 import com.rodhilton.metaheuristics.collections.ScoredSet
 import com.rodhilton.metaheuristics.rectangles.RectUtils
 
+class Counter {
+    public static int generation=0;
+}
+
 class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
     private int size
     private transient Random random
@@ -70,7 +74,7 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
                 }
 
                 if(isOverlapping(bottom, top) && isFreeCornerBetween(bottom,top,inbetween)) {
-                    visiblePairs << [a, b]
+//                    visiblePairs << [a, b]
                     count++;
                 }
             }
@@ -111,7 +115,7 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
         GraphThing child1 = new GraphThing(size, random, parent1Bottom + parent2Top)
         GraphThing child2 = new GraphThing(size, random, parent2Bottom + parent1Top)
 
-        int mutations=scoredGeneration.size()-1
+        int mutations=scoredGeneration.size()/2
 
         List<GraphThing> child1Offspring = []
         List<GraphThing> child2Offspring = []
@@ -122,7 +126,8 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
         }
 
 
-        def things = child1Offspring + child2Offspring + scoredGeneration.getBest()
+
+        def things = child1Offspring + child2Offspring[0..-2] + scoredGeneration.getBest()
         return things
     }
 
@@ -135,7 +140,8 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
                     north: rectToCopy.north,
                     east: rectToCopy.east,
                     south: rectToCopy.south,
-                    west: rectToCopy.west
+                    west: rectToCopy.west,
+                    gen: Counter.generation
             )
             copyRects.add(newRect);
         }
@@ -163,38 +169,32 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing>{
 
     @Override
     String toString() {
-        "F${fitness()}"
-        //RectUtils.printRectangles((Rectangle[])rects.toArray())
-//        StringBuilder sb = new StringBuilder()
-//        sb.append("{\n")
-//        for(Rectangle rect: rects) {
-//            sb.append("   (${rect.east},${rect.north},${rect.west},${rect.south})\n")
-//        }
-//        sb.append("}")
-//        sb.toString()
+        StringBuilder sb = new StringBuilder()
+        sb.append("Rectangle Visibility Diagram on ${rects.size()} rectangles with ${fitness()} edges:\n")
+        sb.append(" { \n")
+        for(int i=rects.size()-1;i>=0;i--) {
+            Rectangle rect = rects[i]
+            sb.append("   ${sprintf('%02d',i+1)}: (${rect.north}, ${rect.east}, ${rect.west}, ${rect.south}\n")
+        }
+
+        sb.append(" } \n")
+    }
+
+    public String fullString() {
+        return RectUtils.printRectangles((Rectangle[])rects.toArray())
     }
 }
 
 
 class Rectangle {
     double east, north, west, south
+    int gen;
 
     def boolean contains(double x, double y) {
         west <= x && x <= east && south <= y && y <= north
     }
 
     def Rectangle generateOverlappingRectangleWithPoint(double x, double y, Random random) {
-        if(this.contains(x, y)) {
-            double x2 = random.nextDouble()
-            double y2 = random.nextDouble()
-
-            return new Rectangle(
-                    north: Math.max(y, y2),
-                    south: Math.min(y, y2),
-                    east: Math.max(x, x2),
-                    west: Math.min(x, x2)
-            )
-        } else {
             double minX=0.0
             double maxX=1.0
             double minY=0.0
@@ -211,10 +211,9 @@ class Rectangle {
                     north: Math.max(y, y2),
                     south: Math.min(y, y2),
                     east: Math.max(x, x2),
-                    west: Math.min(x, x2)
+                    west: Math.min(x, x2),
+                    gen: Counter.generation
             )
-        }
-
     }
 
     def String toString() {
