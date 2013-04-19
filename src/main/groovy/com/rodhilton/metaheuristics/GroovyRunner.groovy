@@ -5,11 +5,19 @@ import com.rodhilton.metaheuristics.collections.ScoredSet
 import com.rodhilton.metaheuristics.simulator.Simulator
 import com.rodhilton.metaheuristics.simulator.SimulatorCallback
 
+import javax.imageio.ImageIO
+import java.awt.Image
+import java.awt.image.BufferedImage
+import java.util.concurrent.atomic.AtomicInteger
+
 class GroovyRunner {
     public static void main(String[] args) {
-        final int size=23;
-        Random random = new Random();
-        random.setSeed(12345L);
+        final int size=15;
+        long seed = System.currentTimeMillis()
+//        long seed = 1366305638180L
+        println("RNG Seed: "+seed)
+        Random random = new Random(seed);
+//        random.setSeed(12345L);
         final Simulator simulator = new Simulator(new Supplier<GraphThing>() {
 
             @Override
@@ -18,15 +26,17 @@ class GroovyRunner {
             }
         })
 
-        SimulatorCallback printer = new SimulatorCallback<GraphThing>() {
+        final AtomicInteger generation = new AtomicInteger()
+
+        SimulatorCallback<GraphThing> printer = new SimulatorCallback<GraphThing>() {
             @Override
             void call(ScoredSet<GraphThing> everything) {
                 GraphThing best = everything.getBest()
-                println("${best.fitness()}/${(size * (size - 1))/2}")
+                println("${generation.incrementAndGet()}: ${best.fitness()}/${(size * (size - 1))/2}")
             }
         }
 
-        SimulatorCallback stopper = new SimulatorCallback<GraphThing>() {
+        SimulatorCallback<GraphThing> stopper = new SimulatorCallback<GraphThing>() {
 
             @Override
             void call(ScoredSet<GraphThing> everything) {
@@ -35,6 +45,10 @@ class GroovyRunner {
                     simulator.stopSimulation();
                     println(best)
                     println(best.fullString())
+                    for(int i=0;i<size;i++) {
+                        BufferedImage render = renderGraphThing(best, i+1)
+                        saveRender(render, "Saved${i+1}.png")
+                    }
                 }
             }
         }
@@ -58,6 +72,22 @@ class GroovyRunner {
         //println(secondTesting.mutate())
 
 
+    }
+
+
+    static BufferedImage renderGraphThing(GraphThing gt, int howMany) {
+        gt.render(800,800, howMany);
+    }
+
+    static def saveRender(BufferedImage image, String filename) {
+        try {
+            // retrieve image
+            File outputfile = new File(filename);
+            ImageIO.write(image, "png", outputfile);
+            println("written to ${outputfile.absolutePath}")
+        } catch (IOException e) {
+            e.printStackTrace()
+        }
     }
 }
 
