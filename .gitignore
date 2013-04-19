@@ -6,5 +6,4 @@ out/
 build/
 .DS_Store
 out/
-*.png
-
+Saved*.png
