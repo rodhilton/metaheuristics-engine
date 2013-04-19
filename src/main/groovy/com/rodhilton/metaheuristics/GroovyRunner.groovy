@@ -2,11 +2,11 @@ package com.rodhilton.metaheuristics
 
 import com.google.common.base.Supplier
 import com.rodhilton.metaheuristics.collections.ScoredSet
+import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
 import com.rodhilton.metaheuristics.simulator.Simulator
 import com.rodhilton.metaheuristics.simulator.SimulatorCallback
 
 import javax.imageio.ImageIO
-import java.awt.Image
 import java.awt.image.BufferedImage
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -18,29 +18,29 @@ class GroovyRunner {
         println("RNG Seed: "+seed)
         Random random = new Random(seed);
 //        random.setSeed(12345L);
-        final Simulator simulator = new Simulator(new Supplier<GraphThing>() {
+        final Simulator simulator = new Simulator(new Supplier<VisibilityDiagram>() {
 
             @Override
-            GraphThing get() {
-                return new GraphThing(size, random);
+            VisibilityDiagram get() {
+                return new VisibilityDiagram(size, random);
             }
         })
 
         final AtomicInteger generation = new AtomicInteger()
 
-        SimulatorCallback<GraphThing> printer = new SimulatorCallback<GraphThing>() {
+        SimulatorCallback<VisibilityDiagram> printer = new SimulatorCallback<VisibilityDiagram>() {
             @Override
-            void call(ScoredSet<GraphThing> everything) {
-                GraphThing best = everything.getBest()
+            void call(ScoredSet<VisibilityDiagram> everything) {
+                VisibilityDiagram best = everything.getBest()
                 println("${generation.incrementAndGet()}: ${best.fitness()}/${(size * (size - 1))/2}")
             }
         }
 
-        SimulatorCallback<GraphThing> stopper = new SimulatorCallback<GraphThing>() {
+        SimulatorCallback<VisibilityDiagram> stopper = new SimulatorCallback<VisibilityDiagram>() {
 
             @Override
-            void call(ScoredSet<GraphThing> everything) {
-                GraphThing best = everything.getBest()
+            void call(ScoredSet<VisibilityDiagram> everything) {
+                VisibilityDiagram best = everything.getBest()
                 if (best.fitness() >= (size * (size - 1))/2) {
                     simulator.stopSimulation();
                     println(best)
@@ -75,7 +75,7 @@ class GroovyRunner {
     }
 
 
-    static BufferedImage renderGraphThing(GraphThing gt, int howMany) {
+    static BufferedImage renderGraphThing(VisibilityDiagram gt, int howMany) {
         gt.render(800,800, howMany);
     }
 

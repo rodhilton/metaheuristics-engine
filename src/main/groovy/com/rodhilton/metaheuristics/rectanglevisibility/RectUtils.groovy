@@ -1,6 +1,4 @@
-package com.rodhilton.metaheuristics.rectangles
-
-import com.rodhilton.metaheuristics.Rectangle
+package com.rodhilton.metaheuristics.rectanglevisibility
 
 class RectUtils {
     static String printRectangles(Rectangle... rects) {

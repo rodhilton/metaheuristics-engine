@@ -34,7 +34,7 @@ public class Simulator {
 
     @SuppressWarnings("unchecked")
     public void startSimulation() {
-        int generationSize = 500;
+        int generationSize = 1000;
 
         List<MetaheuristicAlgorithm> generation = new ArrayList<MetaheuristicAlgorithm>();
         for (int i = 0; i < generationSize; i++) {
@@ -54,8 +54,6 @@ public class Simulator {
 
             if(generation.size() != generationSize)
                 throw new IllegalStateException("Generation size has grown (was "+generationSize+", now "+generation.size()+").  This is likely a memory leak");
-
-            //ensure that generation.size == generationSize or throw exception
         }
     }
 

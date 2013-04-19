@@ -1,5 +1,8 @@
 package com.rodhilton.metaheuristics
 
+import com.rodhilton.metaheuristics.rectanglevisibility.Rectangle
+import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
+
 class Verifier {
 
     public static void main(String[] args) {
@@ -23,7 +26,7 @@ class Verifier {
             }
         }
 
-        GraphThing thing = new GraphThing(size, new Random(), rects)
+        VisibilityDiagram thing = new VisibilityDiagram(size, new Random(), rects)
 
         println("Visibility Diagram's Calculated Fitness: ${thing.fitness()}")
         println("Visibility Diagram's Believed Fitness: ${edgeCount}")

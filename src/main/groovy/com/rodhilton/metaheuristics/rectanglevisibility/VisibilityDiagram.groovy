@@ -1,20 +1,18 @@
-package com.rodhilton.metaheuristics
+package com.rodhilton.metaheuristics.rectanglevisibility
 
-import com.rodhilton.metaheuristics.Rectangle
 import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm
 import com.rodhilton.metaheuristics.collections.ScoredSet
-import com.rodhilton.metaheuristics.rectangles.RectUtils
 
 import java.awt.*
 import java.awt.image.BufferedImage
 import java.util.List
 
-class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
+class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<VisibilityDiagram> {
     private int size
     private transient Random random
     List<Rectangle> rects;
 
-    public GraphThing(int size, Random random) {
+    public VisibilityDiagram(int size, Random random) {
 
         this.random = random
         this.size = size
@@ -52,10 +50,14 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
         }
     }
 
-    protected GraphThing(int size, Random random, List<Rectangle> rects) {
+    protected VisibilityDiagram(int size, Random random, List<Rectangle> rects) {
         this.size = size
         this.random = random
         this.rects = rects
+    }
+
+    public int getSize() {
+        size
     }
 
 
@@ -112,8 +114,12 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
                 bottom.south < top.north && bottom.north > top.south
     }
 
+    Integer getGoal() {
+        (size*(size-1))/2
+    }
+
     @Override
-    List<GraphThing> combine(ScoredSet<GraphThing> scoredGeneration) {
+    List<VisibilityDiagram> combine(ScoredSet<VisibilityDiagram> scoredGeneration) {
         def parents = scoredGeneration.getTop(2);
 
         int pivot = random.nextInt(size - 1)
@@ -123,13 +129,13 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
         def parent1Top = parents[0].rects[pivot + 1..-1]
         def parent2Top = parents[1].rects[pivot + 1..-1]
 
-        GraphThing child1 = new GraphThing(size, random, parent1Bottom + parent2Top)
-        GraphThing child2 = new GraphThing(size, random, parent2Bottom + parent1Top)
+        VisibilityDiagram child1 = new VisibilityDiagram(size, random, parent1Bottom + parent2Top)
+        VisibilityDiagram child2 = new VisibilityDiagram(size, random, parent2Bottom + parent1Top)
 
         int mutations = scoredGeneration.size() / 2
 
-        List<GraphThing> child1Offspring = []
-        List<GraphThing> child2Offspring = []
+        List<VisibilityDiagram> child1Offspring = []
+        List<VisibilityDiagram> child2Offspring = []
 
         for (int i = 0; i < mutations; i++) {
             child1Offspring << child1.mutate()
@@ -140,7 +146,7 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
         return things
     }
 
-    private GraphThing mutate() {
+    private VisibilityDiagram mutate() {
         int whichRect = random.nextInt(size);
         int whichDimension = random.nextInt(4);
         List<Rectangle> copyRects = new ArrayList<Rectangle>()
@@ -172,7 +178,7 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
 
         copyRects.set(whichRect, mutating)
 
-        return new GraphThing(size, random, copyRects)
+        return new VisibilityDiagram(size, random, copyRects)
     }
 
     @Override
@@ -221,20 +227,21 @@ class GraphThing implements Serializable, MetaheuristicAlgorithm<GraphThing> {
 
             if(hueRandom == null) hueRandom = new Random(area)
 
-            final float hue = (i*0.3634590f) % 1f
-//            final float saturation = areaPercent;
-//            final float saturation = 0.5f
-//            final float luminance = (float)((i+1)/(rects.size()+1))
-//            final float luminance = 0.5f
-            final float saturation = 0.6f;
+            //Pick hues in order, but space them far apart to distinguish
+            final float hue = (i*0.4334590f) % 1f
+            final float saturation = 0.7f;
             final float luminance = 0.7f;
             final Color color = Color.getHSBColor(hue, saturation, luminance);
 
             graphics.setColor(color)
-            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 32))
+            //Top rectangle should be very transparent, all others much less so
+            int innerOpacity = (i == rectCount - 1) ? 128 : 255
+            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), innerOpacity))
             graphics.fillRect(scaleX, scaleY, scaleWidth, scaleHeight)
             java.awt.Rectangle myRect = new java.awt.Rectangle(scaleX, scaleY, scaleWidth, scaleHeight);
-            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 255))
+            int thickness = (i == rectCount - 1) ? 2 : 1
+            graphics.setStroke(new BasicStroke(thickness));
+            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 255).darker())
             graphics.draw(myRect)
         }
 
