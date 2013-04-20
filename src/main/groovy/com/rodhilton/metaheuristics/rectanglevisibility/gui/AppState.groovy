@@ -15,8 +15,28 @@ public class AppState {
     int currRect=0;
     int maxRect=0;
     boolean paused;
+    int highlightRect=-1;
+    String name=""
+    boolean showLabels=true
+    boolean hover=false
 
     List<AppStateListener> listeners = new ArrayList<AppStateListener>()
+
+    synchronized void updateHover(boolean hover) {
+        if(!hover) highlightRect = -1
+        this.hover = hover;
+        notifyListeners()
+    }
+
+    synchronized void updateShowLabels(boolean showLabels) {
+        this.showLabels = showLabels;
+        notifyListeners()
+    }
+
+    synchronized void updateHighlighted(int highlightRect) {
+        this.highlightRect = highlightRect
+        notifyListeners()
+    }
 
     synchronized void updatePaused(boolean paused) {
         this.paused = paused
@@ -28,13 +48,9 @@ public class AppState {
         notifyListeners()
     }
 
-    synchronized void updateTitle(String title) {
-        this.title=title
-        notifyListeners()
-    }
-
     synchronized void updateDiagram(VisibilityDiagram diagram) {
         diagramHistory.add(diagram)
+        maxRect = diagram.size
         notifyListeners()
     }
 
@@ -50,11 +66,11 @@ public class AppState {
         notifyListeners()
     }
 
-    void unregister(AppStateListener listener) {
+    synchronized void unregister(AppStateListener listener) {
         listeners.remove(listener)
     }
 
-    void register(AppStateListener listener) {
+    synchronized void register(AppStateListener listener) {
         listeners.add(listener)
     }
 

@@ -10,40 +10,20 @@ import java.util.List
 class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<VisibilityDiagram> {
     private int size
     private transient Random random
-    List<Rectangle> rects;
+    private List<Rectangle> rects;
 
     public VisibilityDiagram(int size, Random random) {
-
         this.random = random
         this.size = size
-        rects = new ArrayList<Rectangle>(size)
+        this.rects = new ArrayList<Rectangle>(size)
 
         Rectangle previousRect = new Rectangle(north: 1.0, south: 0.0, west: 0.0, east: 1.0)
 
         for (int i = 0; i < size; i++) {
-            double ns1 = random.nextDouble()
-            double ns2 = random.nextDouble()
-            double ew1 = random.nextDouble()
-            double ew2 = random.nextDouble()
-            //It seems like we should always create rectangles which overlap the previous one, otherwise its not even close to valid
-
-            //To do this, you generate one point of the new rectange.
-            // if its INSIDE the previous rectangle, you can pick any point at all
-            // if its outside, you need to know its orientation to the previous rectangle.
-            // So if the point is to the north east of the rectange, then to pick a second point you can only go, for X, between
-            //0 and rect.east, and for y you go between 0 and rect.north
-
             double y = random.nextDouble()
             double x = random.nextDouble()
 
             Rectangle rect = previousRect.generateOverlappingRectangleWithPoint(x, y, random)
-
-//            Rectangle rect = new Rectangle(
-//                    north: Math.max(ns1, ns2),
-//                    south: Math.min(ns1, ns2),
-//                    east: Math.max(ew1, ew2),
-//                    west: Math.min(ew1, ew2)
-//            )
             rects.add(rect)
 
             previousRect = rect
@@ -61,12 +41,13 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
     }
 
 
+    public int getGoal() {
+        (size*(size-1))/2
+    }
+
     @Override
     Number fitness() {
-        //count how many rectanges can see each other.
-        //There are size * size-1 total pairs, so the max score is (size*(size-1))/2 since (a,b) is the same as (b,a)
         int count = 0;
-        def visiblePairs = []
         for (int a = 0; a < size; a++) {
             for (int b = a + 1; b < size; b++) {
                 Rectangle bottom = rects[a]
@@ -77,45 +58,11 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
                 }
 
                 if (isOverlapping(bottom, top) && isFreeCornerBetween(bottom, top, inbetween)) {
-//                    visiblePairs << [a, b]
                     count++;
                 }
             }
         }
-        //println("fitness of ${count}!!")
-        //println(visiblePairs.collect{ pair -> "(${pair[0]+1}, ${pair[1]+1})"}.join(", "));
         return count
-    }
-
-    private boolean isFreeCornerBetween(Rectangle a, Rectangle b, List<Rectangle> inbetween) {
-        int fcnecount = 0;
-        int fcnwcount = 0;
-        int fcswcount = 0;
-        int fcsecount = 0;
-        for (Rectangle r : inbetween) {
-            boolean fcne = r.east < Math.min(a.east, b.east) || r.north < Math.min(a.north, b.north)
-            boolean fcnw = r.north < Math.min(a.north, b.north) || r.west > Math.max(a.west, b.west)
-            boolean fcsw = r.west > Math.max(a.west, b.west) || r.south > Math.max(a.south, b.south)
-            boolean fcse = r.south > Math.max(a.south, b.south) || r.east < Math.min(a.east, b.east)
-            if (fcne) fcnecount++
-            if (fcnw) fcnwcount++
-            if (fcsw) fcswcount++
-            if (fcse) fcsecount++
-        }
-        //One of those conditions must hold for ALL the in betweens, meaning that one of the counts must be == the # of inbetweens
-        fcnecount == inbetween.size() ||
-                fcnwcount == inbetween.size() ||
-                fcswcount == inbetween.size() ||
-                fcsecount == inbetween.size()
-    }
-
-    private boolean isOverlapping(Rectangle bottom, Rectangle top) {
-        bottom.west < top.east && bottom.east > top.west &&
-                bottom.south < top.north && bottom.north > top.south
-    }
-
-    Integer getGoal() {
-        (size*(size-1))/2
     }
 
     @Override
@@ -144,6 +91,148 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
 
         def things = child1Offspring + child2Offspring[0..-2] + scoredGeneration.getBest()
         return things
+    }
+
+    @Override
+    String toString() {
+        StringBuilder sb = new StringBuilder()
+        sb.append("Rectangle Visibility Diagram on ${rects.size()} rectangles with ${fitness()} edges in order (E,N,W,S):\r\n")
+        sb.append(" { \n")
+        for (int i = rects.size() - 1; i >= 0; i--) {
+            Rectangle rect = rects[i]
+            sb.append("   ${sprintf('%02d', i + 1)}: (${rect.east}, ${rect.north}, ${rect.west}, ${rect.south})\n")
+        }
+
+        sb.append(" } \n")
+    }
+
+    public String fullString() {
+        return RectUtils.printRectangles((Rectangle[]) rects.toArray())
+    }
+
+    public BufferedImage render(int imageWidth, int imageHeight, int rectCount=rects.size(), int highlightRect=-1) {
+        BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
+
+        Graphics2D graphics = image.createGraphics()
+        //Draw background white
+        graphics.setPaint(new Color(1f, 1f, 1f));
+        graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+
+        float hueGapSize = 1/((float)rects.size())
+        float[] hues = new float[rects.size()]
+        for(int i=0;i<rects.size();i++) {
+            hues[i]=i*hueGapSize
+        }
+
+        //Shuffle hues array, but make sure they are shuffled into the same order each time, we're only shuffling to even out the color distribution
+        Random rnd = new Random(31337);
+        for (int i = hues.length - 1; i >= 0; i--) {
+            int index = rnd.nextInt(i + 1);
+            float a = hues[index];
+            hues[index] = hues[i];
+            hues[i] = a;
+        }
+
+
+        for (int i=0;i<rectCount;i++) {
+            def (int scaleWidth, int scaleHeight, int scaleX, int scaleY) = getScaledRect(i, imageWidth, imageHeight)
+
+            final float hue = hues[i]
+            final float saturation = 0.7f;
+            final float luminance = 0.7f;
+            final Color color = Color.getHSBColor(hue, saturation, luminance);
+
+            graphics.setColor(color)
+
+            //Top rectangle should be very transparent, all others much less so
+            int innerOpacity = (i == rectCount - 1) ? 128 : 255
+            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), innerOpacity))
+            graphics.fillRect(scaleX, scaleY, scaleWidth, scaleHeight)
+            int extraThickness = (i == rectCount - 1) ? 1 : 0
+            java.awt.Rectangle borderRect = new java.awt.Rectangle(scaleX+extraThickness, scaleY+extraThickness, scaleWidth-(extraThickness), scaleHeight-(extraThickness));
+            graphics.setStroke(new BasicStroke(extraThickness+1));
+            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 255).darker())
+            graphics.draw(borderRect)
+
+            //Draw a drop shadow around each
+            int shadowDepth=3
+            graphics.setColor(new Color(0,0,0,32))
+            //Two rectangles to make the shadow
+            graphics.fillRect(scaleX+scaleWidth+1, scaleY+shadowDepth, shadowDepth, scaleHeight+1)
+            graphics.fillRect(scaleX+shadowDepth, scaleY+scaleHeight+1, scaleWidth-shadowDepth+1, shadowDepth)
+
+            if(i==rectCount - 1) {
+                graphics.setStroke(new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND))
+                graphics.setColor(new Color(255, 255, 255, 32))
+                java.awt.Rectangle outlineRect = new java.awt.Rectangle(scaleX, scaleY, scaleWidth, scaleHeight);
+                graphics.draw(outlineRect)
+            }
+        }
+
+        if(highlightRect > -1) {
+            def (int scaleWidth, int scaleHeight, int scaleX, int scaleY) = getScaledRect(highlightRect, imageWidth, imageHeight)
+            java.awt.Rectangle myRect = new java.awt.Rectangle(scaleX, scaleY, scaleWidth, scaleHeight);
+            graphics.setColor(Color.WHITE)
+            float[] dash = [10.0f];
+            graphics.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_BUTT,
+                    BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f));
+            graphics.draw(myRect)
+
+            Font currentFont = graphics.getFont()
+            def bigFont = new Font(currentFont.name, currentFont.style, currentFont.size * 2)
+            FontMetrics fm = graphics.getFontMetrics(bigFont)
+            String rectLabel="${highlightRect+1}"
+            def labelWidth = fm.stringWidth(rectLabel)
+            def labelHeight = fm.getHeight();
+            if(scaleWidth > labelWidth && scaleHeight > labelHeight) {
+                graphics.setFont(bigFont)
+                graphics.drawString(rectLabel, scaleX+(int)((scaleWidth-labelWidth)/2),  fm.getAscent()+scaleY+(int)((scaleHeight-labelHeight)/2))
+                graphics.setFont(currentFont)
+            }
+        }
+
+        return image
+    }
+
+    public int getTopRectangleNumberContaining(double x, double y, int maxLevel) {
+        for(int i=maxLevel-1;i>=0;i--) {
+            Rectangle rectangle = rects[i]
+            if(rectangle.contains(x, y)) {
+                return i;
+            }
+        }
+
+        //If nothing else is considered the top rectangle, but the actual top rectangle is, use that
+        if(rects[maxLevel].contains(x, y)) return maxLevel
+
+        return -1;
+    }
+
+    private boolean isFreeCornerBetween(Rectangle a, Rectangle b, List<Rectangle> inbetween) {
+        int fcnecount = 0;
+        int fcnwcount = 0;
+        int fcswcount = 0;
+        int fcsecount = 0;
+        for (Rectangle r : inbetween) {
+            boolean fcne = r.east < Math.min(a.east, b.east) || r.north < Math.min(a.north, b.north)
+            boolean fcnw = r.north < Math.min(a.north, b.north) || r.west > Math.max(a.west, b.west)
+            boolean fcsw = r.west > Math.max(a.west, b.west) || r.south > Math.max(a.south, b.south)
+            boolean fcse = r.south > Math.max(a.south, b.south) || r.east < Math.min(a.east, b.east)
+            if (fcne) fcnecount++
+            if (fcnw) fcnwcount++
+            if (fcsw) fcswcount++
+            if (fcse) fcsecount++
+        }
+        //One of those conditions must hold for ALL the in betweens, meaning that one of the counts must be == the # of inbetweens
+        fcnecount == inbetween.size() ||
+                fcnwcount == inbetween.size() ||
+                fcswcount == inbetween.size() ||
+                fcsecount == inbetween.size()
+    }
+
+    private boolean isOverlapping(Rectangle bottom, Rectangle top) {
+        bottom.west < top.east && bottom.east > top.west &&
+                bottom.south < top.north && bottom.north > top.south
     }
 
     private VisibilityDiagram mutate() {
@@ -181,109 +270,17 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
         return new VisibilityDiagram(size, random, copyRects)
     }
 
-    @Override
-    String toString() {
-        StringBuilder sb = new StringBuilder()
-        sb.append("Rectangle Visibility Diagram on ${rects.size()} rectangles with ${fitness()} edges in order (E,N,W,S):\n")
-        sb.append(" { \n")
-        for (int i = rects.size() - 1; i >= 0; i--) {
-            Rectangle rect = rects[i]
-            sb.append("   ${sprintf('%02d', i + 1)}: (${rect.east}, ${rect.north}, ${rect.west}, ${rect.south})\n")
-        }
+    private List getScaledRect(int i, int imageWidth, int imageHeight) {
+        Rectangle rect = rects[i]
+        BigDecimal x = rect.west
+        BigDecimal y = 1 - rect.north
+        BigDecimal width = rect.east - rect.west
+        BigDecimal height = rect.north - rect.south
 
-        sb.append(" } \n")
+        int scaleX = x.multiply(imageWidth).toBigInteger()
+        int scaleY = y.multiply(imageHeight).toBigInteger()
+        int scaleWidth = width.multiply(imageWidth).toBigInteger()
+        int scaleHeight = height.multiply(imageHeight).toBigInteger()
+        [scaleWidth, scaleHeight, scaleX, scaleY]
     }
-
-    public String fullString() {
-        return RectUtils.printRectangles((Rectangle[]) rects.toArray())
-    }
-
-    def BufferedImage render(int imageWidth, int imageHeight, int rectCount=rects.size()) {
-        BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB)
-
-        Graphics2D graphics = image.createGraphics()
-        //Draw background white
-        graphics.setPaint(new Color(1f, 1f, 1f));
-        graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
-        def hueRandom = null
-
-        // Color fillColor = new Color(color.)
-        for (int i=0;i<rectCount;i++) {
-            Rectangle rect = rects[i]
-            // Saturation between 0.1 and 0.3
-//        final float saturation = (random.nextInt(2000) + 1000) / 10000f;
-            BigDecimal x = rect.west
-            BigDecimal y = 1-rect.north
-            BigDecimal width = rect.east - rect.west
-            BigDecimal height = rect.north - rect.south
-
-            int scaleX = x.multiply(imageWidth).toBigInteger()
-            int scaleY = y.multiply(imageHeight).toBigInteger()
-            int scaleWidth = width.multiply(imageWidth).toBigInteger()
-            int scaleHeight = height.multiply(imageHeight).toBigInteger()
-
-            int area = scaleWidth * scaleHeight
-            //float areaPercent = area / (imageWidth*imageHeight)
-
-            if(hueRandom == null) hueRandom = new Random(area)
-
-            //Pick hues in order, but space them far apart to distinguish
-            final float hue = (i*0.4334590f) % 1f
-            final float saturation = 0.7f;
-            final float luminance = 0.7f;
-            final Color color = Color.getHSBColor(hue, saturation, luminance);
-
-            graphics.setColor(color)
-            //Top rectangle should be very transparent, all others much less so
-            int innerOpacity = (i == rectCount - 1) ? 128 : 255
-            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), innerOpacity))
-            graphics.fillRect(scaleX, scaleY, scaleWidth, scaleHeight)
-            java.awt.Rectangle myRect = new java.awt.Rectangle(scaleX, scaleY, scaleWidth, scaleHeight);
-            int thickness = (i == rectCount - 1) ? 2 : 1
-            graphics.setStroke(new BasicStroke(thickness));
-            graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), 255).darker())
-            graphics.draw(myRect)
-        }
-
-        return image
-    }
-}
-
-
-class Rectangle {
-    double east, north, west, south
-
-    def boolean contains(double x, double y) {
-        west <= x && x <= east && south <= y && y <= north
-    }
-
-    def Rectangle generateOverlappingRectangleWithPoint(double x, double y, Random random) {
-        double minX = 0.0
-        double maxX = 1.0
-        double minY = 0.0
-        double maxY = 1.0
-        if (x > east) maxX = east
-        if (x < west) minX = west
-        if (y > north) maxY = north
-        if (y < south) minY = south
-
-        double x2 = (random.nextDouble() * (maxX - minX)) + minX
-        double y2 = (random.nextDouble() * (maxY - minY)) + minY
-
-        return new Rectangle(
-                north: Math.max(y, y2),
-                south: Math.min(y, y2),
-                east: Math.max(x, x2),
-                west: Math.min(x, x2),
-        )
-    }
-
-    def String toString() {
-        "(${round(east)}, ${round(north)}, ${round(west)}, ${round(south)})"
-    }
-
-    private def String round(double d) {
-        return sprintf("%4.2f", [d])
-    }
-
 }

@@ -26,37 +26,37 @@ public class ViewPanel extends JPanel implements AppStateListener {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         if(currentDiagram!=null && currentState.width>0 && currentState.height > 0) {
-            BufferedImage buff=currentDiagram.render(currentState.width, currentState.height, this.currentState.currRect)
+            BufferedImage buff=currentDiagram.render(currentState.width, currentState.height, currentState.currRect, currentState.highlightRect)
             Graphics2D g2 = (Graphics2D)buff.getGraphics()
 
-            g2.setColor(Color.BLACK)
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if(currentState.showLabels) {
+                g2.setColor(Color.BLACK)
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            int labelPadding = 5;
-            FontMetrics fm = this.getFontMetrics(this.getFont()); // or another font
+                int labelPadding = 5;
+                FontMetrics fm = this.getFontMetrics(this.getFont());
+                //Label the size, top left
+                drawWithOutline("Level: ${currentState.currRect}/${currentDiagram.size}", labelPadding, fm.height, g2)
 
+                //Label the name, top right
+                def nameString = "[${currentState.name}]"
+                drawWithOutline(nameString, currentState.width-labelPadding-fm.stringWidth(nameString), fm.height, g2);
 
-            //Label the size, top left
-            drawWithOutline("Size: ${currentDiagram.size}", labelPadding, fm.getHeight(), g2)
+                //Label the generation, bottom left
+                drawWithOutline("Generation: ${currentGeneration}", labelPadding, fm.ascent + currentState.height - fm.height - labelPadding, g2);
 
-            //Label the fitness, top right
-            def fitnessString = "Fitness: ${currentDiagram.fitness()}/${currentDiagram.getGoal()}"
-            drawWithOutline(fitnessString, currentState.width-labelPadding-fm.stringWidth(fitnessString), fm.getHeight(), g2);
+                //Label the Fitness, bottom right
+                def fitnessString = "Fitness: ${currentDiagram.fitness()}/${currentDiagram.getGoal()}"
+                drawWithOutline(fitnessString, currentState.width-labelPadding-fm.stringWidth(fitnessString), fm.ascent + currentState.height - fm.height - labelPadding, g2);
 
-            //Label the generation, bottom left
-            drawWithOutline("Generation: ${currentGeneration}", labelPadding, currentState.height - fm.getHeight(), g2);
-
-            //Label the current level, bottom right
-            def levelString = "Level: ${currentState.currRect}"
-            drawWithOutline(levelString, currentState.width-labelPadding-fm.stringWidth(levelString), currentState.height - fm.getHeight(), g2);
-
+            }
 
             g.drawImage(buff, 0, 0, null)
         }
     }
 
     private void drawWithOutline(String string, int x, int y, Graphics2D g2) {
-        g2.setColor(Color.WHITE)
+        g2.setColor(new Color(255, 255, 255, 255))
         g2.drawString(string, x-1, y+1)
         g2.drawString(string, x+1, y+1)
         g2.drawString(string, x-1, y-1)
@@ -67,10 +67,8 @@ public class ViewPanel extends JPanel implements AppStateListener {
 
     void updateState(AppState state) {
         this.currentState = state
-        if(!state.paused) {
-            this.currentDiagram = state.diagramHistory.size() > 0 ? state.diagramHistory.last() : null
-            this.currentGeneration = state.diagramHistory.size()
-        }
+        this.currentDiagram = state.diagramHistory.size() > 0 ? state.diagramHistory.last() : null
+        this.currentGeneration = state.diagramHistory.size()
         this.updateUI()
     }
 
