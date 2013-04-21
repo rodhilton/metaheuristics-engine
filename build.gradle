@@ -17,30 +17,12 @@ repositories {
     mavenCentral()
 }
 
-//sourceSets {
-//    main {
-//        java {
-//            srcDirs = ['src/java']
-//        }
-//        groovy {
-//            srcDirs = ['src/groovy']
-//        }
-//    }
-//
-//    test {
-//        java {
-//            srcDirs = ['test/java']
-//        }
-//        groovy {
-//            srcDirs = ['test/groovy']
-//        }
-//    }
-//}
-
 dependencies {
     compile 'org.codehaus.groovy:groovy-all:2.0.5'
     compile 'com.google.guava:guava:14.0'
     compile 'org.apache.activemq:activemq-core:5.7.0'
+    compile 'org.slf4j:slf4j-simple:1.7.5'
+//    compile 'org.slf4j:slf4j-log4j12:1.7.5'
 
     testCompile 'junit:junit:4.10'
 }
