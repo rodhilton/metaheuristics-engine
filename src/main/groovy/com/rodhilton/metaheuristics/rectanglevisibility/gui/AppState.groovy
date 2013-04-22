@@ -2,28 +2,41 @@ package com.rodhilton.metaheuristics.rectanglevisibility.gui
 
 import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
 
-import java.awt.Dimension
+import java.awt.*
+import java.util.List
 
 public class AppState {
-//    VisibilityDiagram diagram=null
-    List<VisibilityDiagram> diagramHistory=new ArrayList<VisibilityDiagram>()
-    Dimension size=new Dimension(0,0)
-    boolean completed=false
-    String title=""
-    int width=0
-    int height=0
-    int currRect=0;
-    int maxRect=0;
-    boolean paused;
-    int highlightRect=-1;
-    String name=""
-    boolean showLabels=true
-    boolean hover=false
+    //Main State
+    private VisibilityDiagram diagram = null //The visibility diagram itself
+    private int generationNum = 0 //What generation the simulation is up to
+    String name = "" //The name of the user running the simulation
+    int maxRect = 0; //The size of the diagram, as in K_{maxRect}
 
-    List<AppStateListener> listeners = new ArrayList<AppStateListener>()
+    //Status
+    boolean completed = false  //Simulation completed
+    boolean paused = false //Simulation paused (likely via UI)
+
+    //UI Specific
+    String title = "" //Title of the client, arguable UI specific
+    int currRect = 0 //Which one the scrollbar is on, the max level to show
+    int width = 0 //The width of the view area
+    int height = 0 //The height of the view area
+    int highlightRect = -1; //Which rectangle is currently highlighted with mouse (-1 for none)
+    boolean showLabels = true //Whether the HUD labels should be rendered
+    boolean hover = false //Whether the user has even selected the hoverability
+
+    private List<AppStateListener> listeners = new ArrayList<AppStateListener>()
+
+    synchronized void updateDiagram(VisibilityDiagram diagram, int generationNum, String name = "") {
+        this.diagram = diagram
+        this.maxRect = diagram.size
+        this.name = name
+        this.generationNum = generationNum
+        notifyListeners()
+    }
 
     synchronized void updateHover(boolean hover) {
-        if(!hover) highlightRect = -1
+        if (!hover) highlightRect = -1
         this.hover = hover;
         notifyListeners()
     }
@@ -48,16 +61,10 @@ public class AppState {
         notifyListeners()
     }
 
-    synchronized void updateDiagram(VisibilityDiagram diagram) {
-        diagramHistory.add(diagram)
-        maxRect = diagram.size
-        notifyListeners()
-    }
-
     synchronized void updateSize(Dimension newSize) {
-        this.size = newSize
-        this.width=(int)newSize.width
-        this.height=(int)newSize.height
+//        this.size = newSize
+        this.width = (int) newSize.width
+        this.height = (int) newSize.height
         notifyListeners()
     }
 
@@ -66,17 +73,31 @@ public class AppState {
         notifyListeners()
     }
 
-    synchronized void unregister(AppStateListener listener) {
-        listeners.remove(listener)
-    }
+//    synchronized void unregister(AppStateListener listener) {
+//        listeners.remove(listener)
+//    }
 
     synchronized void register(AppStateListener listener) {
         listeners.add(listener)
     }
 
+    synchronized int currentGeneration() {
+        generationNum
+    }
+
+    synchronized boolean hasDiagram() {
+        diagram != null
+    }
+
+    synchronized VisibilityDiagram getDiagram() {
+        diagram
+    }
+
     private void notifyListeners() {
-        for (AppStateListener listener : listeners) {
-            listener.updateState(this)
+        if(hasDiagram()) {
+            for (AppStateListener listener : listeners) {
+                listener.updateState(this)
+            }
         }
     }
 }

@@ -138,7 +138,7 @@ public class Gui {
                 if (rVal == JFileChooser.APPROVE_OPTION) {
                     def file = c.getSelectedFile()
                     file.withWriter {out ->
-                        out.write(appState.diagramHistory.last().toString())
+                        out.write(appState.diagram.toString())
                     }
                     JOptionPane.showMessageDialog(frame, "Saved to ${file.getAbsolutePath()}", "Saved", JOptionPane.INFORMATION_MESSAGE);
                 }

@@ -13,7 +13,7 @@ class MessageSender {
     private Connection connection
     private MessageProducer producer
 
-    private VisibilityDiagram current = null
+    private DiagramMessage current = null
 
     private static Logger log = LoggerFactory.getLogger(MessageSender)
 
@@ -31,12 +31,12 @@ class MessageSender {
         producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
     }
 
-    def sendDiagram(VisibilityDiagram newest) {
-        if (current == null || current.fitness() < newest.fitness()) {
+    def sendMessage(DiagramMessage newest) {
+        if (current == null || current.diagram == null || current.diagram.fitness() < newest.diagram.fitness()) {
             current = newest
             ObjectMessage os = session.createObjectMessage(newest)
 
-            log.debug("Sent message with fitness ${newest.fitness()}")
+            log.debug("Sent message: ${newest}")
             try {
                 producer.send(os);
             } catch (JMSException jmse) {

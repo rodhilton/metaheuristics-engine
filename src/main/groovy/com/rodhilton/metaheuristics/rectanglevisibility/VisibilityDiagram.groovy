@@ -8,8 +8,10 @@ import java.awt.image.BufferedImage
 import java.util.List
 
 class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<VisibilityDiagram> {
+    static final long serialVersionUID = 43L;
+
     private int size
-    private transient Random random
+    private Random random
     private List<Rectangle> rects;
 
     public VisibilityDiagram(int size, Random random) {
@@ -39,7 +41,6 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
     public int getSize() {
         size
     }
-
 
     public int getGoal() {
         (size*(size-1))/2
@@ -202,7 +203,7 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
             }
         }
 
-        //If nothing else is considered the top rectangle, but the actual top rectangle is, use that
+        //If nothing else is considered the top rectangle, but the actual top rectangle contains the point, use that
         if(rects[maxLevel].contains(x, y)) return maxLevel
 
         return -1;

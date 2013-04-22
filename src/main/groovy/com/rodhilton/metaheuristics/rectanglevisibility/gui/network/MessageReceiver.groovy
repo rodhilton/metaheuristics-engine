@@ -1,6 +1,5 @@
 package com.rodhilton.metaheuristics.rectanglevisibility.gui.network
 
-import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
 import com.rodhilton.metaheuristics.rectanglevisibility.gui.AppState
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.slf4j.Logger
@@ -17,7 +16,8 @@ class MessageReceiver {
     private static Logger log = LoggerFactory.getLogger(MessageSender)
 
     public MessageReceiver(String server) {
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(Messaging.getServerAddress(server))
+        def serverAddress = Messaging.getServerAddress(server)
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(serverAddress)
 
         connection = connectionFactory.createConnection()
         connection.start()
@@ -27,6 +27,7 @@ class MessageReceiver {
         Destination destination = session.createQueue("RectangleVisibility")
 
         consumer = session.createConsumer(destination)
+        log.info("Listening for messages at ${serverAddress}...")
     }
 
     public void startReceive(AppState appState) {
@@ -34,14 +35,22 @@ class MessageReceiver {
             public void run() {
                 while (!closed) {
                     try {
-                        Message message = consumer.receive(1000)
+                        if (appState.paused) {
+                            try {
+                                Thread.sleep(500)
+                            } catch (InterruptedException e) {
+                                log.error("Interrupted while sleeping in receiver pause loop", e)
+                            }
+                        }
+
+                        Message message = consumer.receive()
 
                         if (message instanceof ObjectMessage) {
                             ObjectMessage os = (ObjectMessage) message;
-                            VisibilityDiagram diagram = (VisibilityDiagram) os.object;
-                            log.info("Got message ${diagram.fitness()}")
-                            if (appState.diagramHistory.size() == 0 || diagram.fitness() > appState.diagramHistory.last().fitness()) {
-                                appState.updateDiagram(diagram)
+                            DiagramMessage diagramMessage = (DiagramMessage) os.object;
+                            log.info("Got message: ${diagramMessage}")
+                            if (!appState.hasDiagram() || diagramMessage.diagram.fitness() > appState.getDiagram().fitness()) {
+                                appState.updateDiagram(diagramMessage.diagram, diagramMessage.generationNum, diagramMessage.name)
                             }
                         }
 

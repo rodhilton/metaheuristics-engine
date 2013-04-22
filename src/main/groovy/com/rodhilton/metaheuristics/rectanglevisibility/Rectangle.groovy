@@ -1,6 +1,8 @@
 package com.rodhilton.metaheuristics.rectanglevisibility
 
 class Rectangle implements Serializable {
+    static final long serialVersionUID = 44L;
+
     double east, north, west, south
 
     def boolean contains(double x, double y) {

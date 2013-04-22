@@ -3,9 +3,7 @@ package com.rodhilton.metaheuristics.rectanglevisibility.gui
 import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
 
 import javax.swing.JPanel
-import javax.swing.SwingUtilities
 import java.awt.Color
-import java.awt.Font
 import java.awt.FontMetrics
 import java.awt.Graphics
 import java.awt.Graphics2D
@@ -67,8 +65,8 @@ public class ViewPanel extends JPanel implements AppStateListener {
 
     void updateState(AppState state) {
         this.currentState = state
-        this.currentDiagram = state.diagramHistory.size() > 0 ? state.diagramHistory.last() : null
-        this.currentGeneration = state.diagramHistory.size()
+        this.currentDiagram = state.hasDiagram() ? state.getDiagram() : null
+        this.currentGeneration = state.currentGeneration()
         this.updateUI()
     }
 
