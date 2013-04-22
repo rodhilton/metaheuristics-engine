@@ -48,7 +48,14 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
 
     @Override
     Number fitness() {
-        int count = 0;
+        def (List visiblePairs, List invisiblePairs) = getPairs()
+        return visiblePairs.size()
+    }
+
+    public List getPairs() {
+        def visiblePairs = []
+        def invisiblePairs = []
+
         for (int a = 0; a < size; a++) {
             for (int b = a + 1; b < size; b++) {
                 Rectangle bottom = rects[a]
@@ -59,12 +66,15 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
                 }
 
                 if (isOverlapping(bottom, top) && isFreeCornerBetween(bottom, top, inbetween)) {
-                    count++;
+                    visiblePairs << [bottom: bottom, top: top, bottomIndex: a+1, topIndex: b+1]
+                } else {
+                    invisiblePairs << [bottom: bottom, top: top, bottomIndex: a+1, topIndex: b+1]
                 }
             }
         }
-        return count
+        [visiblePairs, invisiblePairs]
     }
+
 
     @Override
     List<VisibilityDiagram> combine(ScoredSet<VisibilityDiagram> scoredGeneration) {

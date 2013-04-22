@@ -15,7 +15,7 @@ class MessageReceiver {
 
     private static Logger log = LoggerFactory.getLogger(MessageSender)
 
-    public MessageReceiver(String server) {
+    public MessageReceiver(String server, int size) {
         def serverAddress = Messaging.getServerAddress(server)
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(serverAddress)
 
@@ -24,10 +24,10 @@ class MessageReceiver {
 
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
 
-        Destination destination = session.createQueue("RectangleVisibility")
+        Destination destination = session.createQueue("${Messaging.QUEUE_NAME}_${size}")
 
         consumer = session.createConsumer(destination)
-        log.info("Listening for messages at ${serverAddress}...")
+        log.info("Listening for messages on ${serverAddress}@${Messaging.QUEUE_NAME}_${size}...")
     }
 
     public void startReceive(AppState appState) {
@@ -48,12 +48,9 @@ class MessageReceiver {
                         if (message instanceof ObjectMessage) {
                             ObjectMessage os = (ObjectMessage) message;
                             DiagramMessage diagramMessage = (DiagramMessage) os.object;
-                            log.info("Got message: ${diagramMessage}")
-                            if(diagramMessage.diagram.size == appState.maxRect) {
-                                if (!appState.hasDiagram() || diagramMessage.diagram.fitness() > appState.getDiagram().fitness()) {
-                                    log.info("Updating with ${diagramMessage}")
-                                    appState.updateDiagram(diagramMessage.diagram, diagramMessage.generationNum, diagramMessage.name)
-                                }
+                            log.debug("Got message: ${diagramMessage}")
+                            if (!appState.hasDiagram() || diagramMessage.diagram.fitness() > appState.getDiagram().fitness()) {
+                                appState.updateDiagram(diagramMessage.diagram, diagramMessage.generationNum, diagramMessage.name)
                             }
                         }
 

@@ -2,23 +2,28 @@ package com.rodhilton.rectanglevisibility.main
 
 import com.google.common.base.Supplier
 import com.rodhilton.metaheuristics.collections.ScoredSet
-import com.rodhilton.rectanglevisibility.domain.VisibilityDiagram
-import com.rodhilton.rectanglevisibility.gui.Gui
-import com.rodhilton.rectanglevisibility.network.MessageReceiver
-import com.rodhilton.rectanglevisibility.network.MessageSender
 import com.rodhilton.metaheuristics.simulator.Simulator
 import com.rodhilton.metaheuristics.simulator.SimulatorCallback
+import com.rodhilton.rectanglevisibility.domain.VisibilityDiagram
+import com.rodhilton.rectanglevisibility.gui.Gui
+import com.rodhilton.rectanglevisibility.gui.TerminalInterface
 import com.rodhilton.rectanglevisibility.network.DiagramMessage
+import com.rodhilton.rectanglevisibility.network.MessageReceiver
+import com.rodhilton.rectanglevisibility.network.MessageSender
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import net.sourceforge.argparse4j.inf.ArgumentParser
 import net.sourceforge.argparse4j.inf.ArgumentParserException
 import net.sourceforge.argparse4j.inf.Namespace
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import javax.swing.*
 import java.util.concurrent.atomic.AtomicInteger
 
 class Executive {
+
+    private static Logger log = LoggerFactory.getLogger(Executive)
 
     public static void main(String[] args) {
         //Temporary.  If there are absolutely no args at all, it's in "demo mode" which means prompt for stuff
@@ -33,21 +38,21 @@ class Executive {
 
         parser.addArgument("size")
                 .dest("size")
-                .type(Integer.class)
+                .type(Integer)
                 .required(true)
                 .help("The size of the complete graph being sought (the number of rectangles)")
 
         parser.addArgument("--mode")
                 .dest("mode")
-                .type(String.class)
+                .type(String)
                 .choices("standalone", "client", "server")
                 .setDefault("standalone")
                 .help("The mode for the application. 'standalone' for normal operation, 'client' to send updates to a server, 'server' to recieve them (default: standalone)")
 
         parser.addArgument("--name")
                 .dest("name")
-                .type(String.class)
-                .setDefault("Anonymous")
+                .type(String)
+                .setDefault("Anon ${new Random().nextInt(1 << 30)}".toString())
                 .help("Your name, only useful for client/server mode to identify source of a diagram")
 
         parser.addArgument("--server")
@@ -56,12 +61,23 @@ class Executive {
                 .type(String)
                 .help("Server to send/receive updates via JMS. Required in server or client mode")
 
+        parser.addArgument("--rng_seed")
+                .dest("seed")
+                .type(Long)
+                .setDefault(System.currentTimeMillis())
+                .help("Seed value to use for the random number generator")
+
         parser.addArgument("--gui")
                 .dest("gui")
                 .action(Arguments.storeTrue())
                 .help("Whether or not to show the GUI")
 
-        //TODO: option for resume from file or log
+        parser.addArgument("--verbose")
+                .dest("verbose")
+                .action(Arguments.storeTrue())
+                .help("Turn debugging verbosity on")
+
+        //TODO: option for resume from file or log (but not for server mode)
         //TODO: option for automatic saving (and how large the log should be)
 
 
@@ -78,13 +94,13 @@ class Executive {
 //                throw new ArgumentParserException("Provided server address is not valid", parser);
 //            }
 
-            start(res.getInt("size"), res.getString("name"), res.getString("mode"), res.getString("server"), res.getBoolean("gui"))
+            start(res.getInt("size"), res.getString("name"), res.getString("mode"), res.getString("server"), res.getBoolean("gui"), res.getLong("seed"), res.getBoolean("verbose"))
         } catch (ArgumentParserException e) {
             parser.handleError(e);
         }
     }
 
-    public static start(int size, String name, String mode, String server, boolean gui) {
+    public static start(int size, String name, String mode, String server, boolean gui, long seed, boolean verbose) {
         final AppState appState = new AppState();
         appState.currRect = size
         appState.maxRect = size
@@ -97,13 +113,31 @@ class Executive {
                     Gui.createAndShowGUI(appState);
                 }
             });
+        } else {
+            TerminalInterface.launchInterface(appState, System.out, verbose)
+        }
+
+        if (verbose) {
+            def debuggingListener = new AppStateListener() {
+
+                @Override
+                void updateState(AppState state) {
+                    def (List visiblePairs, List invisiblePairs) = state.getDiagram().getPairs()
+                    System.err.println("Generation: ${state.currentGeneration()}, Fitness: ${state.diagram.fitness()}")
+                    System.err.println("Visible pairs: " + visiblePairs.collect { "(${it.bottomIndex}, ${it.topIndex})" }.join(", "))
+                    System.err.println("Invisible pairs: " + invisiblePairs.collect { "(${it.bottomIndex}, ${it.topIndex})" }.join(", "))
+                }
+
+            }
+            appState.register(debuggingListener)
         }
 
         if (mode == "server") {
-            MessageReceiver networkReciever = new MessageReceiver(server)
+            MessageReceiver networkReciever = new MessageReceiver(server, size)
             networkReciever.startReceive(appState)
         } else {
-            Random random = new Random()
+            Random random = new Random(seed)
+            log.info("Random seed: ${seed}")
 
             final Simulator simulator = new Simulator(new Supplier<VisibilityDiagram>() {
                 @Override
@@ -139,7 +173,6 @@ class Executive {
                 void call(ScoredSet<VisibilityDiagram> everything) {
                     VisibilityDiagram best = everything.getBest()
                     if (best.fitness() >= (size * (size - 1)) / 2) {
-                        simulator.stopSimulation()
                         appState.updateCompleted()
                     }
                 }
@@ -147,7 +180,7 @@ class Executive {
 
             if (mode == "client") {
 
-                MessageSender networkSender = new MessageSender(server)
+                MessageSender networkSender = new MessageSender(server, size)
 
                 def networkingListener = new AppStateListener() {
                     @Override
@@ -211,6 +244,6 @@ class Executive {
             server = bufferRead.readLine().trim();
         }
 
-        start(size, name, "client", server, true)
+        start(size, name, "client", server, true, System.currentTimeMillis(), false)
     }
 }

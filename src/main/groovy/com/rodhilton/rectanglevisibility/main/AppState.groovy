@@ -69,6 +69,7 @@ public class AppState {
     }
 
     synchronized void updateCompleted() {
+        this.paused = true
         this.completed = true
         notifyListeners()
     }

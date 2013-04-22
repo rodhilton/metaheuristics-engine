@@ -16,18 +16,20 @@ class MessageSender {
 
     private static Logger log = LoggerFactory.getLogger(MessageSender)
 
-    public MessageSender(String server) {
-        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(Messaging.getServerAddress(server))
+    public MessageSender(String server, int size) {
+        def serverAddress = Messaging.getServerAddress(server)
+        ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(serverAddress)
 
         connection = connectionFactory.createConnection()
         connection.start()
 
         session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
 
-        Destination destination = session.createQueue(Messaging.QUEUE_NAME)
+        Destination destination = session.createQueue("${Messaging.QUEUE_NAME}_${size}")
 
         producer = session.createProducer(destination)
         producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
+        log.info("Sending messages to ${serverAddress}@${Messaging.QUEUE_NAME}_${size}...")
     }
 
     def sendMessage(DiagramMessage newest) {
