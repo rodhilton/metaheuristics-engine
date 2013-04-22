@@ -1,6 +1,6 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui
+package com.rodhilton.rectanglevisibility.main
 
-import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
+import com.rodhilton.rectanglevisibility.domain.VisibilityDiagram
 
 import java.awt.*
 import java.util.List

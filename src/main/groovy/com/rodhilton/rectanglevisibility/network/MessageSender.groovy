@@ -1,6 +1,5 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui.network
+package com.rodhilton.rectanglevisibility.network
 
-import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory

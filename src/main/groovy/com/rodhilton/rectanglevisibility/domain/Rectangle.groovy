@@ -1,4 +1,4 @@
-package com.rodhilton.metaheuristics.rectanglevisibility
+package com.rodhilton.rectanglevisibility.domain
 
 class Rectangle implements Serializable {
     static final long serialVersionUID = 44L;

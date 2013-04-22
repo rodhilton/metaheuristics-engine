@@ -1,4 +1,4 @@
-package com.rodhilton.metaheuristics.rectanglevisibility
+package com.rodhilton.rectanglevisibility.domain
 
 import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm
 import com.rodhilton.metaheuristics.collections.ScoredSet
@@ -145,8 +145,8 @@ class VisibilityDiagram implements Serializable, MetaheuristicAlgorithm<Visibili
 
             graphics.setColor(color)
 
-            //Top rectangle should be very transparent, all others much less so
-            int innerOpacity = (i == rectCount - 1) ? 128 : 255
+            //Top rectangle should be somewhat transparent, all others much less so
+            int innerOpacity = (i == rectCount - 1) ? 192 : 255
             graphics.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), innerOpacity))
             graphics.fillRect(scaleX, scaleY, scaleWidth, scaleHeight)
             int extraThickness = (i == rectCount - 1) ? 1 : 0

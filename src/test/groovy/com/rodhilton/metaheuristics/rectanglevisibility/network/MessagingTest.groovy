@@ -1,5 +1,6 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui.network
+package com.rodhilton.metaheuristics.rectanglevisibility.network
 
+import com.rodhilton.rectanglevisibility.network.Messaging
 import org.junit.Test
 
 class MessagingTest {

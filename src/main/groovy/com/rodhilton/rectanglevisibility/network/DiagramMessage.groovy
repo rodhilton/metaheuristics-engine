@@ -1,6 +1,6 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui.network
+package com.rodhilton.rectanglevisibility.network
 
-import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
+import com.rodhilton.rectanglevisibility.domain.VisibilityDiagram
 
 class DiagramMessage implements Serializable {
     static final long serialVersionUID = 42L;

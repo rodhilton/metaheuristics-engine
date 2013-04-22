@@ -1,7 +1,7 @@
 package com.rodhilton.metaheuristics
 
-import com.rodhilton.metaheuristics.rectanglevisibility.RectUtils
-import com.rodhilton.metaheuristics.rectanglevisibility.Rectangle
+import com.rodhilton.rectanglevisibility.domain.RectUtils
+import com.rodhilton.rectanglevisibility.domain.Rectangle
 import org.junit.Before
 import org.junit.Test
 

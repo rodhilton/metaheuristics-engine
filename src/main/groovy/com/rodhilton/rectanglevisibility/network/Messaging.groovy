@@ -1,4 +1,4 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui.network
+package com.rodhilton.rectanglevisibility.network
 
 class Messaging {
     static String QUEUE_NAME = "RectangleVisibility"

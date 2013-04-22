@@ -28,4 +28,4 @@ dependencies {
     testCompile 'junit:junit:4.10'
 }
 
-mainClassName = "com.rodhilton.metaheuristics.rectanglevisibility.gui.ClientApp"
+mainClassName = "com.rodhilton.rectanglevisibility.main.Executive"

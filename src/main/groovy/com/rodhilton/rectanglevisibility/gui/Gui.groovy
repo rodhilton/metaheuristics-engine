@@ -1,4 +1,7 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui
+package com.rodhilton.rectanglevisibility.gui
+
+import com.rodhilton.rectanglevisibility.main.AppState
+import com.rodhilton.rectanglevisibility.main.AppStateListener
 
 import javax.swing.*
 import java.awt.*

@@ -1,6 +1,8 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui
+package com.rodhilton.rectanglevisibility.gui
 
-import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
+import com.rodhilton.rectanglevisibility.main.AppState
+import com.rodhilton.rectanglevisibility.domain.VisibilityDiagram
+import com.rodhilton.rectanglevisibility.main.AppStateListener
 
 import javax.swing.JPanel
 import java.awt.Color

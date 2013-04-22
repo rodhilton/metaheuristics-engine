@@ -1,7 +1,7 @@
-package com.rodhilton.metaheuristics
+package com.rodhilton.rectanglevisibility.util
 
-import com.rodhilton.metaheuristics.rectanglevisibility.Rectangle
-import com.rodhilton.metaheuristics.rectanglevisibility.VisibilityDiagram
+import com.rodhilton.rectanglevisibility.domain.Rectangle
+import com.rodhilton.rectanglevisibility.domain.VisibilityDiagram
 
 class Verifier {
 

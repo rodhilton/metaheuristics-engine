@@ -1,6 +1,6 @@
-package com.rodhilton.metaheuristics.rectanglevisibility.gui.network
+package com.rodhilton.rectanglevisibility.network
 
-import com.rodhilton.metaheuristics.rectanglevisibility.gui.AppState
+import com.rodhilton.rectanglevisibility.main.AppState
 import org.apache.activemq.ActiveMQConnectionFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -35,7 +35,7 @@ class MessageReceiver {
             public void run() {
                 while (!closed) {
                     try {
-                        if (appState.paused) {
+                        while (appState.paused) {
                             try {
                                 Thread.sleep(500)
                             } catch (InterruptedException e) {
@@ -49,8 +49,11 @@ class MessageReceiver {
                             ObjectMessage os = (ObjectMessage) message;
                             DiagramMessage diagramMessage = (DiagramMessage) os.object;
                             log.info("Got message: ${diagramMessage}")
-                            if (!appState.hasDiagram() || diagramMessage.diagram.fitness() > appState.getDiagram().fitness()) {
-                                appState.updateDiagram(diagramMessage.diagram, diagramMessage.generationNum, diagramMessage.name)
+                            if(diagramMessage.diagram.size == appState.maxRect) {
+                                if (!appState.hasDiagram() || diagramMessage.diagram.fitness() > appState.getDiagram().fitness()) {
+                                    log.info("Updating with ${diagramMessage}")
+                                    appState.updateDiagram(diagramMessage.diagram, diagramMessage.generationNum, diagramMessage.name)
+                                }
                             }
                         }
 
