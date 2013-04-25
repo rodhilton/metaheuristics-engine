@@ -5,6 +5,3 @@ out/
 *.iml
 build/
 .DS_Store
-out/
-Saved*.png
-activemq-data

@@ -5,8 +5,8 @@ apply plugin: 'maven'
 configure(install.repositories.mavenInstaller) {
     pom.project {
         version '1.0-SNAPSHOT'
-        artifactId "engine"
-        groupId "com.rodhilton.metaheuristics"
+        artifactId "metaheuristics-engine"
+        groupId "com.nomachetejuggling.metaheuristics"
     }
 }
 
