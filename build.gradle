@@ -2,6 +2,9 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'maven'
 
+sourceCompatibility = JavaVersion.VERSION_1_6
+targetCompatibility = JavaVersion.VERSION_1_6
+
 configure(install.repositories.mavenInstaller) {
     pom.project {
         version '1.0-SNAPSHOT'
