@@ -2,6 +2,7 @@ package com.rodhilton.metaheuristics.simulator;
 
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
+import com.google.common.io.Files;
 import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 
@@ -131,7 +132,7 @@ public class Simulator {
         if(journalName!= null) {
             try {
                 //This should be another file, and then copied.  In case the process is killed while writing
-                fos = new FileOutputStream(journalName, false);
+                fos = new FileOutputStream(journalName+".tmp", false);
                 oos = new ObjectOutputStream(fos);
                 oos.writeInt(iterations);
                 oos.writeInt(generation.size());
@@ -140,6 +141,7 @@ public class Simulator {
                 }
                 oos.close();
                 fos.close();
+                Files.move(new File(journalName+".tmp"), new File(journalName));
             }catch(IOException e) {
                 System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
                 e.printStackTrace(System.err);
