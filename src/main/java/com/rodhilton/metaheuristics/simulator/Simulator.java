@@ -57,9 +57,9 @@ public class Simulator {
 
         List<MetaheuristicAlgorithm> generation = new ArrayList<MetaheuristicAlgorithm>();
 
-        if(isJournaling()) {
-            loadJournal(generation);
-        } else {
+        boolean resumed = loadJournal(generation);
+
+        if(!resumed) {
             for (int i = 0; i < generationSize; i++) {
                 MetaheuristicAlgorithm newElement = supplier.get();
                 generation.add(newElement);
@@ -93,7 +93,8 @@ public class Simulator {
         }
     }
 
-    private List<MetaheuristicAlgorithm> loadJournal(List<MetaheuristicAlgorithm> generation) {
+    private boolean loadJournal(List<MetaheuristicAlgorithm> generation) {
+        if(!isJournaling()) return false;
         //Save to journal if name is set and
         FileInputStream fis = null;
         ObjectInputStream ois = null;
@@ -108,15 +109,15 @@ public class Simulator {
             System.err.println("Loading iteration "+iterations+" from journal file "+journalName);
             ois.close();
             fis.close();
-            return generation;
+            return true;
         }catch(IOException e) {
-            System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
+            System.err.println("Problem loading journal file "+journalName+", will not resume from previous run");
             e.printStackTrace(System.err);
         }catch(ClassNotFoundException e) {
-            System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
+            System.err.println("Problem loading journal file "+journalName+", will not resume from previous run");
             e.printStackTrace(System.err);
         }
-        return null;
+        return false;
     }
 
     private boolean isJournaling() {
@@ -143,7 +144,7 @@ public class Simulator {
                 fos.close();
                 Files.move(new File(journalName+".tmp"), new File(journalName));
             }catch(IOException e) {
-                System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
+                System.err.println("Problem opening journal file "+journalName+", progress will NOT be saved.");
                 e.printStackTrace(System.err);
             }
         }
