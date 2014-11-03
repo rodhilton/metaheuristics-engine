@@ -5,6 +5,7 @@ import com.google.common.base.Supplier;
 import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -17,16 +18,26 @@ public class Simulator {
     private boolean stopRequested;
     private boolean paused;
     private Supplier<MetaheuristicAlgorithm> supplier;
+    private String journalName;
+    private int iterations;
 
     public Simulator(Supplier<MetaheuristicAlgorithm> supplier) {
-
         this.callbacks = new ArrayList<SimulatorCallback<MetaheuristicAlgorithm>>();
         this.stopRequested = false;
         this.supplier = supplier;
+        this.iterations = 0;
     }
 
     public void registerCallback(SimulatorCallback<MetaheuristicAlgorithm> callback) {
         callbacks.add(callback);
+    }
+
+    public void setJournalName(String name) {
+        this.journalName = name + ".journal";
+    }
+
+    public int getIterations() {
+        return this.iterations;
     }
 
 
@@ -44,9 +55,14 @@ public class Simulator {
         }
 
         List<MetaheuristicAlgorithm> generation = new ArrayList<MetaheuristicAlgorithm>();
-        for (int i = 0; i < generationSize; i++) {
-            MetaheuristicAlgorithm newElement = supplier.get();
-            generation.add(newElement);
+
+        if(isJournaling()) {
+            loadJournal(generation);
+        } else {
+            for (int i = 0; i < generationSize; i++) {
+                MetaheuristicAlgorithm newElement = supplier.get();
+                generation.add(newElement);
+            }
         }
 
         while (!stopRequested) {
@@ -67,9 +83,67 @@ public class Simulator {
 
             MetaheuristicAlgorithm best = scoredGeneration.getBest();
             generation = best.combine(scoredGeneration);
+            iterations++;
 
             if (generation.size() != generationSize)
                 throw new IllegalStateException("Generation size has grown (was " + generationSize + ", now " + generation.size() + ").  This is likely a memory leak");
+
+            saveJournal(iterations, generation);
+        }
+    }
+
+    private List<MetaheuristicAlgorithm> loadJournal(List<MetaheuristicAlgorithm> generation) {
+        //Save to journal if name is set and
+        FileInputStream fis = null;
+        ObjectInputStream ois = null;
+        try {
+            fis = new FileInputStream(journalName);
+            ois = new ObjectInputStream(fis);
+            iterations = ois.readInt();
+            int size = ois.readInt();
+            for(int i=0;i<size;i++) {
+                generation.add((MetaheuristicAlgorithm)ois.readObject());
+            }
+            System.err.println("Loading iteration "+iterations+" from journal file "+journalName);
+            ois.close();
+            fis.close();
+            return generation;
+        }catch(IOException e) {
+            System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
+            e.printStackTrace(System.err);
+        }catch(ClassNotFoundException e) {
+            System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
+            e.printStackTrace(System.err);
+        }
+        return null;
+    }
+
+    private boolean isJournaling() {
+        if(journalName==null) return false;
+        File f = new File(journalName);
+        return f.exists() && f.canWrite();
+    }
+
+    private void saveJournal(int iterations, List<MetaheuristicAlgorithm> generation) {
+        //Save to journal if name is set and
+        FileOutputStream fos = null;
+        ObjectOutputStream oos = null;
+        if(journalName!= null) {
+            try {
+                //This should be another file, and then copied.  In case the process is killed while writing
+                fos = new FileOutputStream(journalName, false);
+                oos = new ObjectOutputStream(fos);
+                oos.writeInt(iterations);
+                oos.writeInt(generation.size());
+                for(MetaheuristicAlgorithm ma: generation) {
+                    oos.writeObject(ma);
+                }
+                oos.close();
+                fos.close();
+            }catch(IOException e) {
+                System.err.print("Problem opening journal file "+journalName+", progress will NOT be saved.");
+                e.printStackTrace(System.err);
+            }
         }
     }
 
