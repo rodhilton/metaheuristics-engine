@@ -7,6 +7,7 @@ import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -20,13 +21,13 @@ public class Simulator {
     private boolean paused;
     private Supplier<MetaheuristicAlgorithm> supplier;
     private String journalName;
-    private int iterations;
+    private BigInteger iterations;
 
     public Simulator(Supplier<MetaheuristicAlgorithm> supplier) {
         this.callbacks = new ArrayList<SimulatorCallback<MetaheuristicAlgorithm>>();
         this.stopRequested = false;
         this.supplier = supplier;
-        this.iterations = 0;
+        this.iterations = BigInteger.ZERO;
     }
 
     public void registerCallback(SimulatorCallback<MetaheuristicAlgorithm> callback) {
@@ -37,7 +38,7 @@ public class Simulator {
         this.journalName = name + ".journal";
     }
 
-    public int getIterations() {
+    public BigInteger getIterations() {
         return this.iterations;
     }
 
@@ -58,6 +59,10 @@ public class Simulator {
         List<MetaheuristicAlgorithm> generation = new ArrayList<MetaheuristicAlgorithm>();
 
         boolean resumed = loadJournal(generation);
+
+        if(isJournaling()) {
+            System.err.println("Saving progress to journal file "+journalName);
+        }
 
         if(!resumed) {
             for (int i = 0; i < generationSize; i++) {
@@ -84,7 +89,7 @@ public class Simulator {
 
             MetaheuristicAlgorithm best = scoredGeneration.getBest();
             generation = best.combine(scoredGeneration);
-            iterations++;
+            iterations = iterations.add(BigInteger.ONE);
 
             if (generation.size() != generationSize)
                 throw new IllegalStateException("Generation size has grown (was " + generationSize + ", now " + generation.size() + ").  This is likely a memory leak");
@@ -101,7 +106,7 @@ public class Simulator {
         try {
             fis = new FileInputStream(journalName);
             ois = new ObjectInputStream(fis);
-            iterations = ois.readInt();
+            iterations = (BigInteger)ois.readObject();
             int size = ois.readInt();
             for(int i=0;i<size;i++) {
                 generation.add((MetaheuristicAlgorithm)ois.readObject());
@@ -126,7 +131,7 @@ public class Simulator {
         return f.exists() && f.canWrite();
     }
 
-    private void saveJournal(int iterations, List<MetaheuristicAlgorithm> generation) {
+    private void saveJournal(BigInteger iterations, List<MetaheuristicAlgorithm> generation) {
         //Save to journal if name is set and
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
@@ -135,7 +140,7 @@ public class Simulator {
                 //This should be another file, and then copied.  In case the process is killed while writing
                 fos = new FileOutputStream(journalName+".tmp", false);
                 oos = new ObjectOutputStream(fos);
-                oos.writeInt(iterations);
+                oos.writeObject(iterations);
                 oos.writeInt(generation.size());
                 for(MetaheuristicAlgorithm ma: generation) {
                     oos.writeObject(ma);
