@@ -1,6 +1,5 @@
 package com.rodhilton.metaheuristics.examples.goaltext;
 
-import com.google.common.base.Supplier;
 import com.rodhilton.metaheuristics.algorithms.EvolutionaryAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 import com.rodhilton.metaheuristics.simulator.Simulator;
@@ -11,22 +10,23 @@ import java.util.List;
 
 public class GoalTextRunner {
     public static void main(String[] args) {
-        final String goalText="tobeornottobe";
+        final String goalText = "tobeornottobe";
 
-        EvolutionaryAlgorithm<GoalText> algo = new GoalText.GoalTextGeneticAlgorithm(goalText);
+        EvolutionaryAlgorithm<String> algo = new GoalTextGeneticAlgorithm(goalText);
 
-        Simulator<GoalText> simulator = new Simulator<GoalText>(algo);
+        Simulator<String> simulator = new Simulator<>(algo);
 
-        SimulatorCallback<GoalText> callback = new SimulatorCallback<GoalText>() {
+        SimulatorCallback<String> callback = (ScoredSet<String> everything) -> {
+            System.out.println("-----");
+            System.out.println("Iteration: "+simulator.getIterations());
+            List<String> top = everything.getTop(10);
+            Collections.shuffle(top);
+            for (String best : top) {
+                System.out.println(" " + best + " (" + algo.fitness(best) + ")");
+            }
 
-            @Override
-            public void call(ScoredSet<GoalText> everything) {
-                System.out.println("-----");
-                List<GoalText> top = everything.getTop(10);
-                Collections.shuffle(top);
-                for(GoalText goalText: top) {
-                    System.out.println(" "+goalText.toString());
-                }
+            if(algo.fitness(everything.getBest()).intValue() == goalText.length()) {
+                simulator.stopSimulation();
             }
         };
 
