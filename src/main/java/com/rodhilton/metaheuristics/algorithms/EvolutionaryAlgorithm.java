@@ -4,7 +4,8 @@ import com.rodhilton.metaheuristics.collections.ScoredSet;
 
 import java.util.List;
 
-public interface MetaheuristicAlgorithm<T> {
-    public Number fitness();
+public interface EvolutionaryAlgorithm<T> {
+    T initialize();
+    Number fitness(T candidate);
     List<T> combine(ScoredSet<T> scoredGeneration);
 }

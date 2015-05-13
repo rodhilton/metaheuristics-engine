@@ -4,8 +4,8 @@ apply plugin: 'maven'
 
 group = "com.nomachetejuggling.metaheuristics"
 version = "1.2-SNAPSHOT"
-sourceCompatibility = JavaVersion.VERSION_1_7
-targetCompatibility = JavaVersion.VERSION_1_7
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 configure(install.repositories.mavenInstaller) {
     pom.project {

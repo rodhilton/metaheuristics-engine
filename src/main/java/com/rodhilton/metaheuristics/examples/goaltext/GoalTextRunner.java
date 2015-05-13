@@ -1,7 +1,7 @@
 package com.rodhilton.metaheuristics.examples.goaltext;
 
 import com.google.common.base.Supplier;
-import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
+import com.rodhilton.metaheuristics.algorithms.EvolutionaryAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 import com.rodhilton.metaheuristics.simulator.Simulator;
 import com.rodhilton.metaheuristics.simulator.SimulatorCallback;
@@ -13,23 +13,18 @@ public class GoalTextRunner {
     public static void main(String[] args) {
         final String goalText="tobeornottobe";
 
-        Simulator simulator = new Simulator(new Supplier<MetaheuristicAlgorithm>() {
+        EvolutionaryAlgorithm<GoalText> algo = new GoalText.GoalTextGeneticAlgorithm(goalText);
+
+        Simulator<GoalText> simulator = new Simulator<GoalText>(algo);
+
+        SimulatorCallback<GoalText> callback = new SimulatorCallback<GoalText>() {
 
             @Override
-            public MetaheuristicAlgorithm get() {
-                return new GoalText(goalText);
-            }
-        });
-
-        SimulatorCallback<MetaheuristicAlgorithm> callback = new SimulatorCallback<MetaheuristicAlgorithm>() {
-
-            @Override
-            public void call(ScoredSet<MetaheuristicAlgorithm> everything) {
+            public void call(ScoredSet<GoalText> everything) {
                 System.out.println("-----");
-                List<MetaheuristicAlgorithm> top = everything.getTop(10);
+                List<GoalText> top = everything.getTop(10);
                 Collections.shuffle(top);
-                for(MetaheuristicAlgorithm alg: top) {
-                    GoalText goalText = (GoalText)alg;
+                for(GoalText goalText: top) {
                     System.out.println(" "+goalText.toString());
                 }
             }

@@ -3,7 +3,7 @@ package com.rodhilton.metaheuristics.simulator;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.io.Files;
-import com.rodhilton.metaheuristics.algorithms.MetaheuristicAlgorithm;
+import com.rodhilton.metaheuristics.algorithms.EvolutionaryAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 
 import java.io.*;
@@ -15,22 +15,22 @@ import java.util.concurrent.*;
 
 import static com.google.common.collect.Collections2.transform;
 
-public class Simulator {
-    private List<SimulatorCallback<MetaheuristicAlgorithm>> callbacks;
+public class Simulator<T> {
+    private List<SimulatorCallback<T>> callbacks;
     private boolean stopRequested;
     private boolean paused;
-    private Supplier<MetaheuristicAlgorithm> supplier;
+    private EvolutionaryAlgorithm<T> algorithm;
     private String journalName;
     private BigInteger iterations;
 
-    public Simulator(Supplier<MetaheuristicAlgorithm> supplier) {
-        this.callbacks = new ArrayList<SimulatorCallback<MetaheuristicAlgorithm>>();
+    public Simulator(EvolutionaryAlgorithm<T> algorithm) {
+        this.callbacks = new ArrayList<SimulatorCallback<T>>();
         this.stopRequested = false;
-        this.supplier = supplier;
+        this.algorithm = algorithm;
         this.iterations = BigInteger.ZERO;
     }
 
-    public void registerCallback(SimulatorCallback<MetaheuristicAlgorithm> callback) {
+    public void registerCallback(SimulatorCallback<T> callback) {
         callbacks.add(callback);
     }
 
@@ -56,7 +56,7 @@ public class Simulator {
             }
         }
 
-        List<MetaheuristicAlgorithm> generation = new ArrayList<MetaheuristicAlgorithm>();
+        List<T> generation = new ArrayList<T>();
 
         boolean resumed = loadJournal(generation);
 
@@ -66,7 +66,7 @@ public class Simulator {
 
         if(!resumed) {
             for (int i = 0; i < generationSize; i++) {
-                MetaheuristicAlgorithm newElement = supplier.get();
+                T newElement = algorithm.initialize();
                 generation.add(newElement);
             }
         }
@@ -81,14 +81,14 @@ public class Simulator {
                 }
             }
 
-            ScoredSet<MetaheuristicAlgorithm> scoredGeneration = scoreGeneration(generation);
+            ScoredSet<T> scoredGeneration = scoreGeneration(generation);
 
-            for (SimulatorCallback<MetaheuristicAlgorithm> callback : callbacks) {
+            for (SimulatorCallback<T> callback : callbacks) {
                 callback.call(scoredGeneration);
             }
 
-            MetaheuristicAlgorithm best = scoredGeneration.getBest();
-            generation = best.combine(scoredGeneration);
+            T best = scoredGeneration.getBest();
+            generation = algorithm.combine(scoredGeneration);
             iterations = iterations.add(BigInteger.ONE);
 
             if (generation.size() != generationSize)
@@ -98,7 +98,7 @@ public class Simulator {
         }
     }
 
-    private boolean loadJournal(List<MetaheuristicAlgorithm> generation) {
+    private boolean loadJournal(List<T> generation) {
         if(!isJournaling()) return false;
         //Save to journal if name is set and
         FileInputStream fis = null;
@@ -109,7 +109,7 @@ public class Simulator {
             iterations = (BigInteger)ois.readObject();
             int size = ois.readInt();
             for(int i=0;i<size;i++) {
-                generation.add((MetaheuristicAlgorithm)ois.readObject());
+                generation.add((T)ois.readObject());
             }
             System.err.println("Loading iteration "+iterations+" from journal file "+journalName);
             ois.close();
@@ -131,7 +131,7 @@ public class Simulator {
         return f.exists() && f.canWrite();
     }
 
-    private void saveJournal(BigInteger iterations, List<MetaheuristicAlgorithm> generation) {
+    private void saveJournal(BigInteger iterations, List<T> generation) {
         //Save to journal if name is set and
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
@@ -142,7 +142,7 @@ public class Simulator {
                 oos = new ObjectOutputStream(fos);
                 oos.writeObject(iterations);
                 oos.writeInt(generation.size());
-                for(MetaheuristicAlgorithm ma: generation) {
+                for(T ma: generation) {
                     oos.writeObject(ma);
                 }
                 oos.close();
@@ -155,10 +155,10 @@ public class Simulator {
         }
     }
 
-    private ScoredSet<MetaheuristicAlgorithm> scoreGeneration(List<MetaheuristicAlgorithm> generation) {
+    private ScoredSet<T> scoreGeneration(List<T> generation) {
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-        ScoredSet<MetaheuristicAlgorithm> scored = new ScoredSet<MetaheuristicAlgorithm>();
+        ScoredSet<T> scored = new ScoredSet<T>();
 
         try {
             List<Future<Result>> futures = executor.invokeAll(scorersFor(generation));
@@ -199,38 +199,38 @@ public class Simulator {
         this.stopRequested = true;
     }
 
-    private Collection<Callable<Result>> scorersFor(Collection<MetaheuristicAlgorithm> population) {
-        return transform(population, new Function<MetaheuristicAlgorithm, Callable<Result>>() {
+    private Collection<Callable<Result>> scorersFor(Collection<T> population) {
+        return transform(population, new Function<T, Callable<Result>>() {
             @Override
-            public Callable<Result> apply(MetaheuristicAlgorithm input) {
-                return new Scorer(input);
+            public Callable<Result> apply(T input) {
+                return new Scorer<T>(input);
             }
         });
     }
 
-    private class Scorer implements Callable<Result> {
-        private MetaheuristicAlgorithm gene;
+    private class Scorer<X extends T> implements Callable<Result> {
+        private X gene;
 
-        Scorer(MetaheuristicAlgorithm gene) {
+        Scorer(X gene) {
             this.gene = gene;
         }
 
         @Override
         public Result call() throws Exception {
-            return new Result(gene, gene.fitness());
+            return new Result(gene, algorithm.fitness(gene));
         }
     }
 
     private class Result {
-        private MetaheuristicAlgorithm gene;
+        private T gene;
         private Number score;
 
-        public Result(MetaheuristicAlgorithm gene, Number score) {
+        public Result(T gene, Number score) {
             this.gene = gene;
             this.score = score;
         }
 
-        public MetaheuristicAlgorithm getGene() {
+        public T getGene() {
             return gene;
         }
 
