@@ -1,7 +1,5 @@
 package com.rodhilton.metaheuristics.simulator;
 
-import com.google.common.base.Function;
-import com.google.common.base.Supplier;
 import com.google.common.io.Files;
 import com.rodhilton.metaheuristics.algorithms.EvolutionaryAlgorithm;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
@@ -9,11 +7,9 @@ import com.rodhilton.metaheuristics.collections.ScoredSet;
 import java.io.*;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.*;
 
-import static com.google.common.collect.Collections2.transform;
+import static java.util.stream.Collectors.toList;
 
 public class Simulator<T> {
     private List<SimulatorCallback<T>> callbacks;
@@ -60,11 +56,11 @@ public class Simulator<T> {
 
         boolean resumed = loadJournal(generation);
 
-        if(isJournaling()) {
-            System.err.println("Saving progress to journal file "+journalName);
+        if (isJournaling()) {
+            System.err.println("Saving progress to journal file " + journalName);
         }
 
-        if(!resumed) {
+        if (!resumed) {
             for (int i = 0; i < generationSize; i++) {
                 T newElement = algorithm.initialize();
                 generation.add(newElement);
@@ -87,7 +83,6 @@ public class Simulator<T> {
                 callback.call(scoredGeneration);
             }
 
-            T best = scoredGeneration.getBest();
             generation = algorithm.combine(scoredGeneration);
             iterations = iterations.add(BigInteger.ONE);
 
@@ -99,34 +94,34 @@ public class Simulator<T> {
     }
 
     private boolean loadJournal(List<T> generation) {
-        if(!isJournaling()) return false;
+        if (!isJournaling()) return false;
         //Save to journal if name is set and
         FileInputStream fis = null;
         ObjectInputStream ois = null;
         try {
             fis = new FileInputStream(journalName);
             ois = new ObjectInputStream(fis);
-            iterations = (BigInteger)ois.readObject();
+            iterations = (BigInteger) ois.readObject();
             int size = ois.readInt();
-            for(int i=0;i<size;i++) {
-                generation.add((T)ois.readObject());
+            for (int i = 0; i < size; i++) {
+                generation.add((T) ois.readObject());
             }
-            System.err.println("Loading iteration "+iterations+" from journal file "+journalName);
+            System.err.println("Loading iteration " + iterations + " from journal file " + journalName);
             ois.close();
             fis.close();
             return true;
-        }catch(IOException e) {
-            System.err.println("Problem loading journal file "+journalName+", will not resume from previous run");
+        } catch (IOException e) {
+            System.err.println("Problem loading journal file " + journalName + ", will not resume from previous run");
             e.printStackTrace(System.err);
-        }catch(ClassNotFoundException e) {
-            System.err.println("Problem loading journal file "+journalName+", will not resume from previous run");
+        } catch (ClassNotFoundException e) {
+            System.err.println("Problem loading journal file " + journalName + ", will not resume from previous run");
             e.printStackTrace(System.err);
         }
         return false;
     }
 
     private boolean isJournaling() {
-        if(journalName==null) return false;
+        if (journalName == null) return false;
         File f = new File(journalName);
         return f.exists() && f.canWrite();
     }
@@ -135,46 +130,34 @@ public class Simulator<T> {
         //Save to journal if name is set and
         FileOutputStream fos = null;
         ObjectOutputStream oos = null;
-        if(journalName!= null) {
+        if (journalName != null) {
             try {
                 //This should be another file, and then copied.  In case the process is killed while writing
-                fos = new FileOutputStream(journalName+".tmp", false);
+                fos = new FileOutputStream(journalName + ".tmp", false);
                 oos = new ObjectOutputStream(fos);
                 oos.writeObject(iterations);
                 oos.writeInt(generation.size());
-                for(T ma: generation) {
+                for (T ma : generation) {
                     oos.writeObject(ma);
                 }
                 oos.close();
                 fos.close();
-                Files.move(new File(journalName+".tmp"), new File(journalName));
-            }catch(IOException e) {
-                System.err.println("Problem opening journal file "+journalName+", progress will NOT be saved.");
+                Files.move(new File(journalName + ".tmp"), new File(journalName));
+            } catch (IOException e) {
+                System.err.println("Problem opening journal file " + journalName + ", progress will NOT be saved.");
                 e.printStackTrace(System.err);
             }
         }
     }
 
     private ScoredSet<T> scoreGeneration(List<T> generation) {
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
         ScoredSet<T> scored = new ScoredSet<T>();
 
-        try {
-            List<Future<Result>> futures = executor.invokeAll(scorersFor(generation));
-            executor.shutdown();
+        generation.parallelStream()
+                  .map((T t) -> new Result(t, algorithm.fitness(t)))
+                  .forEach(result -> scored.add(result.getScore(), result.getGene()));
 
-            for (Future<Result> resultFuture : futures) {
-                Result result = resultFuture.get();
-                scored.add(result.getScore(), result.gene);
-            }
-
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
 
         return scored;
     }
@@ -197,28 +180,6 @@ public class Simulator<T> {
 
     public void stopSimulation() {
         this.stopRequested = true;
-    }
-
-    private Collection<Callable<Result>> scorersFor(Collection<T> population) {
-        return transform(population, new Function<T, Callable<Result>>() {
-            @Override
-            public Callable<Result> apply(T input) {
-                return new Scorer<T>(input);
-            }
-        });
-    }
-
-    private class Scorer<X extends T> implements Callable<Result> {
-        private X gene;
-
-        Scorer(X gene) {
-            this.gene = gene;
-        }
-
-        @Override
-        public Result call() throws Exception {
-            return new Result(gene, algorithm.fitness(gene));
-        }
     }
 
     private class Result {
