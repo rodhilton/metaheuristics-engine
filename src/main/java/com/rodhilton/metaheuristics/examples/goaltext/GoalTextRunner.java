@@ -10,7 +10,7 @@ import java.util.List;
 
 public class GoalTextRunner {
     public static void main(String[] args) {
-        final String goalText = "tobeornottobe";
+        final String goalText = "ToBeOrNotToBeThatIsTheQuestionWhetherTisNoblerInTheMindToSufferTheSlingsAndArrowsOfOutrageousFortuneOrToTakeArmsAgainstASeaOfTroublesAndByOpposingEndThemToDieToSleep".toLowerCase();
 
         EvolutionaryAlgorithm<String> algo = new GoalTextGeneticAlgorithm(goalText);
 
