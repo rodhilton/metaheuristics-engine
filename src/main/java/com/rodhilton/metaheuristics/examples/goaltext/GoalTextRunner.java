@@ -16,7 +16,7 @@ public class GoalTextRunner {
 
         Simulator<String> simulator = new Simulator<>(algo);
 
-        SimulatorCallback<String> callback = (ScoredSet<String> everything) -> {
+        simulator.registerCallback((ScoredSet<String> everything) -> {
             System.out.println("-----");
             System.out.println("Iteration: "+simulator.getIterations());
             List<String> top = everything.getTop(10);
@@ -28,9 +28,8 @@ public class GoalTextRunner {
             if(algo.fitness(everything.getBest()).intValue() == goalText.length()) {
                 simulator.stopSimulation();
             }
-        };
+        });
 
-        simulator.registerCallback(callback);
         simulator.startSimulation();
     }
 
