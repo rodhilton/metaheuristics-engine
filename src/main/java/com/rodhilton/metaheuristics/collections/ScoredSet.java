@@ -55,6 +55,10 @@ public class ScoredSet<T> {
         return getTop(1).get(0);
     }
 
+    public Number getBestScore() {
+        return scores.first();
+    }
+
     public List<T> getTop(int count) {
         if(count>size) throw new ArrayIndexOutOfBoundsException("Requested "+count+", only "+size+" available");
 

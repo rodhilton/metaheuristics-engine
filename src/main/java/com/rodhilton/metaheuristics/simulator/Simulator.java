@@ -6,6 +6,8 @@ import com.rodhilton.metaheuristics.collections.ScoredSet;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,13 +19,16 @@ public class Simulator<T> {
     private boolean paused;
     private EvolutionaryAlgorithm<T> algorithm;
     private String journalName;
+    private String logName;
     private BigInteger iterations;
+    private Number bestKnownScore;
 
     public Simulator(EvolutionaryAlgorithm<T> algorithm) {
         this.callbacks = new ArrayList<SimulatorCallback<T>>();
         this.stopRequested = false;
         this.algorithm = algorithm;
         this.iterations = BigInteger.ZERO;
+        this.bestKnownScore = null;
     }
 
     public void registerCallback(SimulatorCallback<T> callback) {
@@ -32,6 +37,10 @@ public class Simulator<T> {
 
     public void setJournalName(String name) {
         this.journalName = name + ".journal";
+    }
+
+    public void setLogName(String logName) {
+        this.logName = logName;
     }
 
     public BigInteger getIterations() {
@@ -90,7 +99,45 @@ public class Simulator<T> {
                 throw new IllegalStateException("Generation size has grown (was " + generationSize + ", now " + generation.size() + ").  This is likely a memory leak");
 
             saveJournal(iterations, generation);
+            saveLog(scoredGeneration);
         }
+    }
+
+    private void saveLog(ScoredSet<T> generation) {
+        if(!isLogging()) return;
+        T best = generation.getBest();
+        Number score = generation.getBestScore();
+
+        if(bestKnownScore == null || score.doubleValue()>=bestKnownScore.doubleValue()) {
+            try {
+                String bestString = best.toString();
+                MessageDigest md5 = MessageDigest.getInstance("MD5");
+                md5.update(bestString.getBytes());
+                BigInteger hash = new BigInteger(1, md5.digest());
+                String hashFromContent = hash.toString(16);
+                String hashedWithScore = score.toString() + "_" + hashFromContent;
+                String newName = this.logName.replaceFirst("\\*", hashedWithScore);
+
+                File dir = new File("logs");
+                File logFile = new File(dir, newName);
+
+                PrintWriter pw = new PrintWriter(new FileWriter(logFile));
+                pw.write(bestString);
+                pw.close();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    private boolean isLogging() {
+        if (logName == null) return false;
+        File dir = new File("logs");
+        dir.mkdirs();
+        return dir.exists() && dir.canWrite();
     }
 
     private boolean loadJournal(List<T> generation) {
