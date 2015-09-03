@@ -29,3 +29,19 @@ dependencies {
     testCompile 'junit:junit:4.10'
 }
 
+
+idea {
+    module {
+        jdkName = '1.8'
+    }
+}
+
+
+idea.module.iml {
+    beforeMerged { module ->
+        module.dependencies.clear()
+    }
+    whenMerged { module ->
+        module.dependencies*.exported = true
+    }
+}
