@@ -70,6 +70,7 @@ public class Simulator<T> {
         }
 
         if (!resumed) {
+            iterations = BigInteger.ONE;
             for (int i = 0; i < generationSize; i++) {
                 T newElement = algorithm.initialize();
                 generation.add(newElement);
