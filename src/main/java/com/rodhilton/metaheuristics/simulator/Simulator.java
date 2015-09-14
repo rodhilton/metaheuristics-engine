@@ -10,6 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import static java.util.stream.Collectors.toList;
 
@@ -21,6 +22,7 @@ public class Simulator<T> {
     private String journalName;
     private String logName;
     private BigInteger iterations;
+    private int generationSize;
     private Number bestKnownScore;
 
     public Simulator(EvolutionaryAlgorithm<T> algorithm) {
@@ -52,7 +54,7 @@ public class Simulator<T> {
     public void startSimulation() {
         String generationSizeProperty = System.getProperty("generationSize");
 
-        int generationSize = 100;
+        generationSize = 256;
         if (generationSizeProperty != null) {
             try {
                 generationSize = Integer.parseInt(generationSizeProperty);
@@ -94,10 +96,21 @@ public class Simulator<T> {
             }
 
             generation = algorithm.combine(scoredGeneration);
+            //It's possible for the generation size to change, perhaps from loading a previous journal, or the size even being set dynamically.
+            //So we need to, in the case of the generation size shrinking, only take the first n, and in the case of growing, duplicate random
+            //elements until we get to the correct size
+
+            //For too many
+            generation = generation.subList(0, Math.min(generationSize, generation.size()));
+            //For not enough
+            while(generation.size() < generationSize) {
+                generation.add(generation.get(new Random().nextInt(generation.size())));
+            }
+
             iterations = iterations.add(BigInteger.ONE);
 
-            if (generation.size() != generationSize)
-                throw new IllegalStateException("Generation size has grown (was " + generationSize + ", now " + generation.size() + ").  This is likely a memory leak");
+//            if (generation.size() != generationSize)
+//                throw new IllegalStateException("Generation size has grown (was " + generationSize + ", now " + generation.size() + ").  This is likely a memory leak");
 
             saveJournal(iterations, generation);
             saveLog(scoredGeneration);
@@ -151,7 +164,7 @@ public class Simulator<T> {
             ois = new ObjectInputStream(fis);
             iterations = (BigInteger) ois.readObject();
             int size = ois.readInt();
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < Math.min(size, generationSize); i++) {
                 generation.add((T) ois.readObject());
             }
             System.err.println("Loading iteration " + iterations + " from journal file " + journalName);
