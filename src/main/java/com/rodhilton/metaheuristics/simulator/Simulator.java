@@ -1,7 +1,7 @@
 package com.rodhilton.metaheuristics.simulator;
 
 import com.google.common.io.Files;
-import com.rodhilton.metaheuristics.algorithms.EvolutionaryAlgorithm;
+import com.rodhilton.metaheuristics.algorithms.Metaheuristic;
 import com.rodhilton.metaheuristics.collections.ScoredSet;
 
 import java.io.*;
@@ -12,20 +12,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static java.util.stream.Collectors.toList;
-
 public class Simulator<T> {
     private List<SimulatorCallback<T>> callbacks;
     private boolean stopRequested;
     private boolean paused;
-    private EvolutionaryAlgorithm<T> algorithm;
+    private Metaheuristic<T> algorithm;
     private String journalName;
     private String logName;
     private BigInteger iterations;
     private int generationSize;
     private Number bestKnownScore;
 
-    public Simulator(EvolutionaryAlgorithm<T> algorithm) {
+    public Simulator(Metaheuristic<T> algorithm) {
         this.callbacks = new ArrayList<SimulatorCallback<T>>();
         this.stopRequested = false;
         this.algorithm = algorithm;
@@ -54,7 +52,8 @@ public class Simulator<T> {
     public void startSimulation() {
         String generationSizeProperty = System.getProperty("generationSize");
 
-        generationSize = 256;
+
+        generationSize = 100;
         if (generationSizeProperty != null) {
             try {
                 generationSize = Integer.parseInt(generationSizeProperty);
@@ -62,6 +61,7 @@ public class Simulator<T> {
                 System.err.println("Generation size is not a number: " + generationSizeProperty);
             }
         }
+
 
         List<T> generation = new ArrayList<T>();
 
@@ -100,17 +100,22 @@ public class Simulator<T> {
             //So we need to, in the case of the generation size shrinking, only take the first n, and in the case of growing, duplicate random
             //elements until we get to the correct size
 
-            //For too many
-            generation = generation.subList(0, Math.min(generationSize, generation.size()));
-            //For not enough
-            while(generation.size() < generationSize) {
-                generation.add(generation.get(new Random().nextInt(generation.size())));
+            if(generation.size() != generationSize) {
+                if(generation.size() > generationSize) {
+                    System.err.printf("Current generation size %d, should be %d, trimming", generation.size(), generationSize);
+                } else {
+                    System.err.printf("Current generation size %d, should be %d, expanding with repeats", generation.size(), generationSize);
+                }
+
+                //For too many
+                generation = generation.subList(0, Math.min(generationSize, generation.size()));
+                //For not enough
+                while(generation.size() < generationSize) {
+                    generation.add(generation.get(new Random().nextInt(generation.size())));
+                }
             }
 
             iterations = iterations.add(BigInteger.ONE);
-
-//            if (generation.size() != generationSize)
-//                throw new IllegalStateException("Generation size has grown (was " + generationSize + ", now " + generation.size() + ").  This is likely a memory leak");
 
             saveJournal(iterations, generation);
             saveLog(scoredGeneration);
@@ -216,7 +221,7 @@ public class Simulator<T> {
         ScoredSet<T> scored = new ScoredSet<T>();
 
         generation.parallelStream()
-                  .map((T t) -> new Result(t, algorithm.fitness(t)))
+                  .map((T t) -> new Result(t, algorithm.score(t)))
                   .forEach(result -> scored.add(result.getScore(), result.getGene()));
 
 

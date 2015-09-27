@@ -84,4 +84,14 @@ public class ScoredSet<T> {
         return newList;
     }
 
+    public List<ScoredElement<T>> getElementsWithScores() {
+        List<ScoredElement<T>> newList = new ArrayList<ScoredElement<T>>();
+        for(BigDecimal score: scores) {
+            for(T element: map.get(score)) {
+                newList.add(new ScoredElement<T>(element, score));
+            }
+        }
+        return newList;
+    }
+
 }
